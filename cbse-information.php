@@ -1,0 +1,6 @@
+<?php
+declare(strict_types=1);
+/** CMS-driven page — APS CMS. */
+$cms_page_slug = 'cbse-information-page-panki';
+$cms_page_title_fallback = 'CBSE Information';
+require __DIR__ . '/includes/cms-dynamic-page.php';

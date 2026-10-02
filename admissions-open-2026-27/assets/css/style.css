@@ -1,0 +1,310 @@
+ @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Mulish:ital,wght@0,200..1000;1,200..1000&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Salsa&display=swap');
+
+ * {
+   font-family: "Poppins", sans-serif !important;
+ }
+
+ .bg-red-main {
+   background: #F4131B;
+ }
+
+ .bg-blue-main {
+   background: #132959;
+
+ }
+
+ .text-blue-main {
+   color: #132959;
+   ;
+ }
+
+ .slideLeft {
+   animation-name: slideLeft;
+   -webkit-animation-name: slideLeft;
+   animation-duration: 1s;
+   -webkit-animation-duration: 1s;
+   animation-timing-function: ease-in-out;
+   -webkit-animation-timing-function: ease-in-out;
+   visibility: visible !important;
+   animation-delay: .5s;
+ }
+
+ @keyframes slideLeft {
+   0% {
+     transform: translateX(150%);
+   }
+
+   50% {
+     transform: translateX(-8%);
+   }
+
+   65% {
+     transform: translateX(4%);
+   }
+
+   80% {
+     transform: translateX(-4%);
+   }
+
+   95% {
+     transform: translateX(2%);
+   }
+
+   100% {
+     transform: translateX(0%);
+   }
+ }
+
+ .enquiry-btn,
+ .academic-animation {
+   transition: .5s all;
+ }
+
+ .enquiry-btn:hover {
+   background: #F4131B;
+ }
+
+ .enquiry-btn:hover {
+   background-image: linear-gradient(90deg, #F4131B 0%, #f4131be0 49%, #f4131bd0 80%, #F4131B 100%);
+   animation: slidebg 3s linear infinite;
+ }
+
+ .why-allen {
+   cursor: pointer;
+   transition: .2s all;
+ }
+
+ .why-allen:hover,
+ .why-allen:hover h2 {
+   background-image: linear-gradient(90deg, #F4131B 0%, #f4131be0 49%, #f4131bd0 80%, #F4131B 100%);
+   animation: slidebg 3s linear infinite;
+   color: #fff;
+   transition: .2s all;
+ }
+
+ @keyframes slidebg {
+   to {
+     background-position: 20vw;
+   }
+ }
+
+ .academic-animation {
+   transition: .2s all;
+ }
+
+ .academic-animation:hover .aca-img {
+   transform: rotate3d(45deg);
+ }
+
+ .testimonial-carousel .owl-nav {
+   display: flex;
+   justify-content: center;
+   gap: 15px;
+ }
+
+ .testimonial-carousel .owl-nav .owl-prev,
+ .testimonial-carousel .owl-nav .owl-next {
+   width: 30px;
+   height: 30px;
+   border: 1px solid #999090 !important;
+   border-radius: 50%;
+   line-height: 13px;
+ }
+
+ .waviy {
+   position: relative;
+   -webkit-box-reflect: below -20px linear-gradient(transparent, rgba(0, 0, 0, .2));
+   font-size: 60px;
+ }
+
+ .waviy span {
+   font-family: 'Alfa Slab One', cursive;
+   position: relative;
+   display: inline-block;
+   color: #c52828;
+   text-transform: uppercase;
+   animation: waviy 1s infinite;
+   animation-delay: calc(.1s * var(--i));
+
+ }
+
+ @keyframes waviy {
+
+   0%,
+   40%,
+   100% {
+     transform: translateY(0)
+   }
+
+   20% {
+     transform: translateY(-20px)
+   }
+ }
+
+ .o-video {
+   position: relative;
+   padding-bottom: 56.25%;
+   height: 0;
+ }
+
+ .carousel2 .swiper-slide,
+ .carousel2 .swiper-wrapper {
+   height: auto !important;
+ }
+
+ .carousel3 .swiper-slide,
+ .carousel3 .swiper-wrapper {
+   height: auto !important;
+ }
+
+ .carousel4 .swiper-slide,
+ .carousel4 .swiper-wrapper {
+   height: auto !important;
+ }
+
+ .our-toppers .swiper-slide,
+ .our-toppers .swiper-wrapper {
+   height: auto !important;
+ }
+
+ .hero-bg {
+   background-image: url("https://myschool-assets.s3.ap-south-1.amazonaws.com/uploads/BjZfX4GkghaM07Y0OjEHqMRC1lCMhvgk95d6M5Lf.webp");
+   background-position: top;
+   background-size: cover;
+   scale: 1;
+ }
+
+ .hero-bg::after {
+   content: "";
+   height: 100%;
+   width: 100%;
+   background: #053B7A;
+   display: block;
+   position: absolute;
+   top: 0;
+   opacity: .7;
+ }
+
+ @keyframes scaleLoop {
+
+   0%,
+   100% {
+     transform: scale(1);
+   }
+
+   50% {
+     transform: scale(1.1);
+   }
+ }
+
+ .animate-scale-loop {
+   animation: scaleLoop 5s ease-in-out infinite;
+ }
+
+ .allen-achievements, .future-skill-bg {
+   position: relative;
+ }
+
+ .allen-achievements::before {
+   content: "";
+   position: absolute;
+   height: 100%;
+   width: 100%;
+   background: black;
+   opacity: .5;
+ }
+ .future-skill-bg::before {
+   content: "";
+   position: absolute;
+   height: 75%;
+   width: 100%;
+   background: linear-gradient(45deg, #053B7A, #b51115);
+ }
+
+ .world-class-campus .flex {
+   align-items: stretch !important;
+ }
+
+ .world-class-campus .flex > div {
+   height: auto !important;
+   min-height: 213px;
+   align-self: stretch;
+ }
+
+ .world-class-campus .flex > div:has(> img) {
+   display: flex;
+   overflow: hidden;
+   padding: 0 !important;
+ }
+
+ .world-class-campus .flex > div > img {
+   width: 100% !important;
+   height: 100% !important;
+   min-height: 213px;
+   object-fit: cover;
+   display: block;
+   flex: 1 1 auto;
+ }
+
+ .world-class-campus [class*="lg:h-[289px]"],
+ .world-class-campus [class*="md:h-[213px]"] {
+   height: auto !important;
+   min-height: 213px;
+ }
+
+ @media (min-width: 1024px) {
+   .world-class-campus .flex > div,
+   .world-class-campus .flex > div > img,
+   .world-class-campus [class*="lg:h-[289px]"] {
+     min-height: 289px;
+   }
+ }
+
+ .world-class-campus [style*="height: 289px"],
+ .world-class-campus [style*="height:289px"] {
+   height: auto !important;
+   min-height: 289px;
+ }
+
+ .world-class-campus [style*="height: 213px"],
+ .world-class-campus [style*="height:213px"] {
+   height: auto !important;
+   min-height: 213px;
+ }
+
+ .century-skills-section .century-skills {
+   width: 100%;
+   gap: 2.5rem 1.5rem;
+ }
+
+ .century-skills-section .century-skills__item {
+   width: 42%;
+   max-width: 200px;
+   padding: 0 0.75rem;
+ }
+
+ @media (min-width: 640px) {
+   .century-skills-section .century-skills {
+     gap: 2.5rem 2rem;
+   }
+
+   .century-skills-section .century-skills__item {
+     width: 28%;
+   }
+ }
+
+ @media (min-width: 1024px) {
+   .century-skills-section .century-skills {
+     gap: 2rem 3rem;
+   }
+
+   .century-skills-section .century-skills__item {
+     width: 18%;
+     padding: 0 1rem;
+   }
+ }
+
+ .century-skills-section .century-skills__item h3 {
+   text-align: center;
+   margin-top: 0.75rem;
+ }

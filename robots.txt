@@ -1,0 +1,18 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /login/
+Disallow: /cgi-bin/
+Disallow: /tmp/
+Disallow: /login.php
+Disallow: /wp-login.php
+Disallow: /wp-admin/
+Crawl-delay: 10
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+
+Sitemap: https://allenhousepanki.com/sitemap.xml

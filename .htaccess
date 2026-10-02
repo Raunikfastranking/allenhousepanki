@@ -1,0 +1,55 @@
+# Portable Apache rules for standalone school deploy (AWS, subdirectory, or domain root).
+# No RewriteBase: per-directory rewrites are relative to the folder containing this file.
+# PHP URL prefix: includes/environment.php (APS_BASE_PATH env or auto-detect from DOCUMENT_ROOT).
+RewriteEngine On
+
+
+RewriteCond %{HTTP_HOST} localhost [NC,OR]
+RewriteCond %{HTTP_HOST} \.local$ [NC,OR]
+RewriteCond %{HTTP_HOST} ^127\.0\.0\.1$
+RewriteRule ^ - [E=APS_LOCAL:1]
+
+RewriteCond %{ENV:APS_LOCAL} !=1
+RewriteCond %{THE_REQUEST} \s/cambridge[\s?]
+RewriteRule ^cambridge/?$ https://allenhouselucknow.com/best-cambridge-school-in-lucknow [R=301,L]
+
+RewriteCond %{ENV:APS_LOCAL} !=1
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+<IfModule mod_headers.c>
+    SetEnvIf Request_URI "(?i)\.(?:css|js|mjs|ico|jpg|jpeg|png|gif|webp|svg|woff2?|ttf|eot|map)$" STATIC_ASSET
+    Header set Cache-Control "public, max-age=2592000" env=STATIC_ASSET
+    Header set Cache-Control "private, no-cache, must-revalidate" env=!STATIC_ASSET
+</IfModule>
+
+DirectoryIndex index.php
+
+# Normalize trailing slashes on extensionless URLs (skip real directories)
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} (.+)/$
+RewriteRule ^ %1 [L]
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Proxy JSON endpoints (/proxy/name -> /proxy/name.php)
+RewriteRule ^proxy/([A-Za-z0-9_-]+)/?$ proxy/$1.php [L,QSA]
+
+RewriteRule ^blog/blog/([A-Za-z0-9_-]+)/?$ blog/$1 [R=301,L,NC]
+
+RewriteRule ^home/?$ index.php [NC,L]
+RewriteRule ^blog/([A-Za-z0-9_-]+)/?$ cms-page.php?cms_path=blog/$1 [NC,L,QSA]
+RewriteRule ^view/([A-Za-z0-9_-]+)/?$ detail-view.php?slug=$1 [NC,L,QSA]
+
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.+?)/?$ $1.php [L]
+
+RewriteCond %{REQUEST_FILENAME}.php !-f
+RewriteRule ^([A-Za-z0-9_-]+)/?$ cms-page.php?cms_path=$1 [NC,L,QSA]
+
+RewriteRule ^ index.php [L]
+
+ErrorDocument 404 index.php
+ErrorDocument 500 index.php
