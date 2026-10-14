@@ -83,11 +83,22 @@ if (!function_exists('cms_fetch_sorted_grade_labels')) {
         }
 
         $response = null;
-        if (function_exists('cms_curl_get_json') && defined('CMS_API_URL') && defined('BRANCH_ID')) {
+        if (function_exists('cmsBulkApiCacheGet')) {
+            $bulkGrades = cmsBulkApiCacheGet('grades_data');
+            if (is_array($bulkGrades)) {
+                $response = $bulkGrades;
+            }
+        }
+        if (!is_array($response) && function_exists('cmsScopedFileCacheGetAny')) {
+            $cachedGrades = cmsScopedFileCacheGetAny('grades_data');
+            if (is_array($cachedGrades)) {
+                $response = $cachedGrades;
+            }
+        }
+        if (!is_array($response) && function_exists('cms_curl_get_json') && defined('CMS_API_URL') && defined('BRANCH_ID')) {
             $response = cms_curl_get_json(
                 rtrim(CMS_API_URL, '/') . '/grades/' . BRANCH_ID,
-                6,
-                true
+                4
             );
         }
         if (!is_array($response)) {

@@ -3,7 +3,7 @@
 require_once __DIR__ . '/environment.php';
 
 if (!headers_sent()) {
-    header('Cache-Control: private, max-age=60, must-revalidate');
+    header('Cache-Control: private, max-age=10, must-revalidate');
 }
 
 require_once dirname(__DIR__) . '/proxy/config.php';

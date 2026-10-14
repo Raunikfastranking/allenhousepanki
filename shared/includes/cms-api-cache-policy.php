@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 if (!function_exists('cmsApiUsesFileCache')) {
     /**
-     * File cache keeps responses fast. CMS content keys use cmsApiContentCacheTtl() (default 5 min).
-     * Set CMS_FILE_CACHE=0 to disable (not recommended on production).
+     * File cache keeps responses fast. CMS keys refresh in the background after cmsApiContentCacheTtl() (default 10s).
+     * Set CMS_FILE_CACHE=0 to disable (not recommended; every page then waits on the CMS API).
      */
     function cmsApiUsesFileCache(): bool
     {
@@ -14,10 +14,6 @@ if (!function_exists('cmsApiUsesFileCache')) {
             if ($cacheFile !== '' && is_file($cacheFile)) {
                 @unlink($cacheFile);
             }
-            return false;
-        }
-
-        if (function_exists('is_app_local') && is_app_local()) {
             return false;
         }
 
@@ -37,15 +33,15 @@ if (!function_exists('cmsApiUsesFileCache')) {
 }
 
 if (!function_exists('cmsApiContentCacheTtl')) {
-    /** Seconds before editable CMS page/home keys refresh from the API. */
+    /** Seconds before CMS keys are refreshed in the background. Visitors are not blocked on this wait. */
     function cmsApiContentCacheTtl(): int
     {
         $env = getenv('CMS_CONTENT_CACHE_TTL');
         if ($env !== false && is_numeric($env)) {
-            return max(60, (int) $env);
+            return max(10, (int) $env);
         }
 
-        return 300;
+        return 10;
     }
 }
 
@@ -67,39 +63,17 @@ if (!function_exists('cmsApiStaleGraceTtl')) {
 
 if (!function_exists('cmsApiEndpointTtl')) {
     /**
-     * Per-endpoint cache TTL (seconds). Structural data gets longer TTL for speed.
+     * Per-endpoint cache TTL (seconds). Every CMS key uses the same short TTL so edits show within about 10 seconds.
+     * Expired keys are still served immediately and refreshed after the response is sent.
      */
     function cmsApiEndpointTtl(string $key): int
     {
+        unset($key);
+
         if (!cmsApiUsesFileCache()) {
             return 0;
         }
 
-        $contentTtl = cmsApiContentCacheTtl();
-
-        if (str_starts_with($key, 'page_')) {
-            return $contentTtl;
-        }
-
-        return match ($key) {
-            'home_data', 'landing_data' => $contentTtl,
-            'scroll_text_data', 'flyer_data', 'blogData' => max($contentTtl, 600),
-            'statistics_data', 'statistic_data' => 1800,
-            'photo_gallery_data', 'achievement_gallery_data', 'gallery_data', 'jobs_data' => 1800,
-            // Menu/nav is also force-refetched (cmsApiEndpointRequiresLiveFetch) so CMS
-            // add/remove is visible on the next page load — not stuck for up to 2 hours.
-            'menu_data' => $contentTtl,
-            'header_footer_data' => max($contentTtl, 300),
-            // Keep short so newly created CMS pages resolve without waiting hours.
-            'pages_index' => max($contentTtl, 600),
-            'footer_important_links', 'footer_quick_links', 'footer_hierarchical' => max($contentTtl, 300),
-            'school_sessions_data', 'image_alt_data' => 3600,
-            'grades_data', 'cities_data' => 24 * 3600,
-            default => $contentTtl,
-        };
-
-        if (str_starts_with($key, 'legacy_')) {
-            return 3600;
-        }
+        return cmsApiContentCacheTtl();
     }
 }

@@ -390,7 +390,7 @@ if (!function_exists('cmsCoreConfig')) {
             $response = cmsBulkApiCacheGet('pages_index');
         }
         if ($response === null) {
-            $response = cmsCmsGetJson('pages?branch_id=' . BRANCH_ID, 45);
+            $response = cmsCmsGetJson('pages?branch_id=' . BRANCH_ID, 4);
         }
         $list = is_array($response['data'] ?? null) ? $response['data'] : [];
         foreach ($list as $page) {
@@ -572,93 +572,77 @@ if (!function_exists('cmsCoreConfig')) {
             return ['data' => []];
         }
 
+        unset($forceLive);
+
         static $cache = [];
-        $cacheKey = $forceLive ? ($slug . ':live') : $slug;
-        if (isset($cache[$cacheKey]) && is_array($cache[$cacheKey])) {
-            return $cache[$cacheKey];
-        }
-
-        $homeSlug = (string) cmsCoreGet('home_page_slug', 'home-page-agra');
-        if (
-            !$forceLive
-            && $slug === $homeSlug
-            && isset($GLOBALS['api_cache']['home_data'])
-            && is_array($GLOBALS['api_cache']['home_data'])
-        ) {
-            $bulkHome = $GLOBALS['api_cache']['home_data'];
-            if (!empty($bulkHome['data']) && !cmsPageNeedsLiveRefresh($slug, $bulkHome)) {
-                $cache[$cacheKey] = $bulkHome;
-
-                return $bulkHome;
-            }
+        if (isset($cache[$slug]) && is_array($cache[$slug])) {
+            return $cache[$slug];
         }
 
         $fileKey = 'page_' . $slug;
-        if (!$forceLive && function_exists('cmsScopedFileCacheGet')) {
-            $fileCached = cmsScopedFileCacheGet($fileKey);
-            if (
-                is_array($fileCached)
-                && !empty($fileCached['data'])
-                && cmsPageIsPublished($fileCached)
-                && !cmsPageNeedsLiveRefresh($slug, $fileCached)
-            ) {
-                $cache[$cacheKey] = $fileCached;
+        $homeSlug = (string) cmsCoreGet('home_page_slug', 'home-page-agra');
 
-                return $fileCached;
+        $fresh = null;
+        if (function_exists('cmsScopedFileCacheGet')) {
+            $fileFresh = cmsScopedFileCacheGet($fileKey);
+            if (is_array($fileFresh) && !empty($fileFresh['data']) && cmsPageIsPublished($fileFresh)) {
+                $fresh = $fileFresh;
             }
         }
-
-        $endpoint = 'pages/' . rawurlencode($slug);
-        if ($forceLive && function_exists('cms_curl_get_json')) {
-            $page = cms_curl_get_json(cmsApiBase() . '/' . $endpoint, 20, true);
-        } else {
-            $page = cmsCmsGetJson($endpoint);
+        if ($fresh === null && $slug === $homeSlug && function_exists('cmsScopedFileCacheGet')) {
+            $homeFresh = cmsScopedFileCacheGet('home_data');
+            if (is_array($homeFresh) && !empty($homeFresh['data']) && cmsPageIsPublished($homeFresh)) {
+                $fresh = $homeFresh;
+            }
         }
-        if (!is_array($page) || empty($page['data']['sections'] ?? null)) {
-            if ($forceLive && function_exists('cms_curl_get_json')) {
-                $retry = cms_curl_get_json(cmsApiBase() . '/' . $endpoint, 25, true);
-                if (is_array($retry) && !empty($retry['data'])) {
-                    $page = $retry;
+        if (is_array($fresh)) {
+            if ($slug === $homeSlug && isset($GLOBALS['api_cache']) && is_array($GLOBALS['api_cache'])) {
+                $GLOBALS['api_cache']['home_data'] = $fresh;
+            }
+            $cache[$slug] = $fresh;
+
+            return $fresh;
+        }
+
+        $page = cmsCmsGetJson('pages/' . rawurlencode($slug), 4);
+        if (is_array($page) && !empty($page['data']) && cmsPageIsPublished($page)) {
+            if (function_exists('cmsApiStoreScopedKey')) {
+                cmsApiStoreScopedKey($fileKey, $page);
+                if ($slug === $homeSlug) {
+                    cmsApiStoreScopedKey('home_data', $page);
                 }
-            } elseif (function_exists('cms_fetch_json_endpoint')) {
-                $retry = cms_fetch_json_endpoint('pages/' . $slug);
-                if (is_array($retry) && !empty($retry['data'])) {
-                    $page = $retry;
-                }
+            }
+            if ($slug === $homeSlug && isset($GLOBALS['api_cache']) && is_array($GLOBALS['api_cache'])) {
+                $GLOBALS['api_cache']['home_data'] = $page;
+            }
+            $cache[$slug] = $page;
+
+            return $page;
+        }
+
+        $stale = null;
+        if (function_exists('cmsScopedFileCacheGetAny')) {
+            $cached = cmsScopedFileCacheGetAny($fileKey);
+            if (is_array($cached) && !empty($cached['data']) && cmsPageIsPublished($cached)) {
+                $stale = $cached;
             }
         }
         if (
-            $forceLive
-            && (!is_array($page) || empty($page['data']))
-            && function_exists('cmsScopedFileCacheGetAny')
+            $stale === null
+            && $slug === $homeSlug
+            && isset($GLOBALS['api_cache']['home_data'])
+            && is_array($GLOBALS['api_cache']['home_data'])
+            && !empty($GLOBALS['api_cache']['home_data']['data'])
+            && cmsPageIsPublished($GLOBALS['api_cache']['home_data'])
         ) {
-            $stale = cmsScopedFileCacheGetAny($fileKey);
-            if (is_array($stale) && !empty($stale['data']) && cmsPageIsPublished($stale)) {
-                $page = $stale;
-            }
+            $stale = $GLOBALS['api_cache']['home_data'];
         }
-        if (!is_array($page)) {
-            $page = ['data' => []];
+        if (!is_array($stale)) {
+            $stale = ['data' => []];
         }
+        $cache[$slug] = $stale;
 
-        if (!cmsPageIsPublished($page)) {
-            $page = ['data' => []];
-        }
-
-        if (!empty($page['data']) && function_exists('cmsApiStoreScopedKey')) {
-            cmsApiStoreScopedKey($fileKey, $page);
-        }
-
-        if ($slug === $homeSlug && !empty($page['data']) && isset($GLOBALS['api_cache']) && is_array($GLOBALS['api_cache'])) {
-            $GLOBALS['api_cache']['home_data'] = $page;
-        }
-
-        $cache[$cacheKey] = $page;
-        if ($forceLive) {
-            $cache[$slug] = $page;
-        }
-
-        return $page;
+        return $stale;
     }
 
     function cmsFetchPageById(int|string $id): array
