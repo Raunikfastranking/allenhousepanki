@@ -77,10 +77,7 @@ if (!function_exists('cmsFetchPankiPage')) {
             return ['data' => []];
         }
 
-        $forceLive = function_exists('cmsPankiPageRequestIsLive')
-            && cmsPankiPageRequestIsLive($slug);
-
-        $page = cmsFetchPageBySlug($slug, $forceLive);
+        $page = cmsFetchPageBySlug($slug, false);
         if (function_exists('cmsPankiNormalizePageTitles')) {
             $page = cmsPankiNormalizePageTitles($page, $slug);
         }
@@ -114,10 +111,6 @@ if (!function_exists('cmsPankiFlyersResponse')) {
             return null;
         }
 
-        $endpoint = 'flyers/branch/' . BRANCH_ID;
-        $url = rtrim(CMS_API_URL, '/') . '/' . $endpoint;
-
-        
         if (!function_exists('cmsBulkFlyersResponse')) {
             require_once dirname(__DIR__) . '/shared/includes/cms-bulk-reuse.php';
         }
@@ -126,24 +119,19 @@ if (!function_exists('cmsPankiFlyersResponse')) {
             return $bulk;
         }
 
-        if (function_exists('cmsCmsGetJson')) {
-            $viaCore = cmsCmsGetJson($endpoint, 20);
-            if (is_array($viaCore)) {
-                return $viaCore;
+        if (function_exists('cmsBulkApiCacheGet')) {
+            $cached = cmsBulkApiCacheGet('flyer_data');
+            if ($cached !== null) {
+                return $cached;
             }
         }
 
-        if (!function_exists('cms_curl_get_json')) {
-            return null;
-        }
-
-        $response = cms_curl_get_json($url, 20);
-        if (is_array($response)) {
-            return $response;
-        }
-        $response = cms_curl_get_json($url, 25);
-        if (is_array($response)) {
-            return $response;
+        $endpoint = 'flyers/branch/' . BRANCH_ID;
+        if (function_exists('cmsCmsGetJson')) {
+            $viaCore = cmsCmsGetJson($endpoint, 4);
+            if (is_array($viaCore)) {
+                return $viaCore;
+            }
         }
 
         return null;
@@ -157,20 +145,22 @@ if (!function_exists('cmsPankiScrollingTextsResponse')) {
             return null;
         }
 
+        if (function_exists('cmsBulkApiCacheGet')) {
+            $cached = cmsBulkApiCacheGet('scroll_text_data');
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
         $endpoint = 'scrolling-texts/branch/' . BRANCH_ID;
         if (function_exists('cmsCmsGetJson')) {
-            $viaCore = cmsCmsGetJson($endpoint, 20);
+            $viaCore = cmsCmsGetJson($endpoint, 4);
             if (is_array($viaCore)) {
                 return $viaCore;
             }
         }
 
-        if (!function_exists('cms_curl_get_json')) {
-            return null;
-        }
-
-        $url = rtrim(CMS_API_URL, '/') . '/' . $endpoint;
-        return cms_curl_get_json($url, 20);
+        return null;
     }
 }
 

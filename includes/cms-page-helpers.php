@@ -499,8 +499,8 @@ function cmsFetchBlogBySlug(string $slug): ?array
     $url = rtrim(CMS_API_URL, '/') . '/blogs/slug/' . rawurlencode($slug);
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 4);
     curl_setopt($ch, CURLOPT_HTTPHEADER, function_exists('api_auth_headers') ? api_auth_headers() : []);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
@@ -567,8 +567,15 @@ function cmsFetchPankiBlogItems(): array
     require_once __DIR__ . '/api-adapters.php';
 
     $url = cmsPankiBlogListUrl();
+    $bulkBlogs = function_exists('cmsBulkApiCacheGet') ? cmsBulkApiCacheGet('blogData') : null;
+    if (is_array($bulkBlogs)) {
+        $cache = cmsExtractBlogItems($bulkBlogs);
+
+        return $cache;
+    }
+
     $decoded = function_exists('cms_curl_get_json')
-        ? cms_curl_get_json($url, 25)
+        ? cms_curl_get_json($url, 4)
         : null;
 
     if (!is_array($decoded)) {
