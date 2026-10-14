@@ -84,10 +84,7 @@ if (!function_exists('cmsLayoutApiGet')) {
 
         $path = ltrim($endpoint, '/');
         if (function_exists('cmsCmsGetJson')) {
-            $decoded = cmsCmsGetJson($path, $timeout);
-            if (!cmsApiResponseIsUsable(is_array($decoded) ? $decoded : null)) {
-                $decoded = cmsCmsGetJson($path, $timeout, true);
-            }
+            $decoded = cmsCmsGetJson($path, min(4, $timeout));
 
             return is_array($decoded) ? $decoded : null;
         }

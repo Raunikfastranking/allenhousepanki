@@ -383,7 +383,7 @@ function cmsHomeLegacyRow(): array
 
     if ($response === null && defined('CMS_API_URL') && defined('BRANCH_ID') && function_exists('cms_curl_get_json')) {
         $statsUrl = rtrim(CMS_API_URL, '/') . '/statistics/branch/' . BRANCH_ID;
-        $response = cms_curl_get_json($statsUrl, 20);
+        $response = cms_curl_get_json($statsUrl, 4);
     }
 
     return cmsLegacyStatisticsRow(is_array($response) ? $response : null);
