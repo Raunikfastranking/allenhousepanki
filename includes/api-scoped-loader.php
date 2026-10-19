@@ -126,7 +126,6 @@ if (!function_exists('cmsApiBuildEndpoints')) {
             'pages_index' => '/pages?branch_id=' . $branchId,
             'school_sessions_data' => '/school-sessions',
             'image_alt_data' => '/image_alt_text/' . $branchId,
-            'grades_data' => '/grades/' . $branchId,
         ];
 
         if (!empty($flags['home'])) {
@@ -134,6 +133,7 @@ if (!function_exists('cmsApiBuildEndpoints')) {
             $endpoints['statistic_data'] = '/statistics/branch/' . $branchId;
             $endpoints['flyer_data'] = '/flyers/branch/' . $branchId;
             $endpoints['photo_gallery_data'] = '/galleries/type/gallery/branch/' . $branchId;
+            // $endpoints['grades_data'] = '/grades/' . $branchId;
             $endpoints['cities_data'] = '/cities/' . (defined('SCHOOL_ID') ? SCHOOL_ID : (string) $branchId);
         }
 
@@ -159,10 +159,30 @@ if (!function_exists('cmsApiBuildEndpoints')) {
 if (!function_exists('cmsApiEndpointRequiresLiveFetch')) {
     function cmsApiEndpointRequiresLiveFetch(string $key, string $endpoint): bool
     {
-        unset($key, $endpoint);
+        // Nav must match CMS immediately (add/remove), not wait on the file cache.
+        if ($key === 'menu_data') {
+            return true;
+        }
 
-        // Visitors are served from file cache. Expired keys refresh after the response is sent.
-        return false;
+        if (!empty($GLOBALS['school_is_index_page']) && $key === 'home_data') {
+            return true;
+        }
+
+        // Legacy of Excellence statistics must match CMS immediately on homepage.
+        if (!empty($GLOBALS['school_is_index_page']) && $key === 'statistic_data') {
+            return true;
+        }
+
+        $liveSlug = trim((string) ($GLOBALS['cms_page_slug'] ?? ''));
+        if ($liveSlug === '') {
+            return false;
+        }
+
+        if ($key === 'home_data' && str_ends_with($endpoint, '/' . $liveSlug)) {
+            return true;
+        }
+
+        return $key === 'page_' . $liveSlug;
     }
 }
 
@@ -212,7 +232,7 @@ if (!function_exists('cmsApiCurlMultiFetch')) {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, api_auth_headers());
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 8);
             if (function_exists('apply_curl_ssl_options')) {
                 apply_curl_ssl_options($ch);
             }
@@ -233,6 +253,19 @@ if (!function_exists('cmsApiCurlMultiFetch')) {
             $content = curl_multi_getcontent($ch);
             $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $decoded = json_decode((string) $content, true);
+            if (($httpCode !== 200 || !is_array($decoded)) && defined('LEGACY_CMS_API_URL') && defined('CMS_API_URL')) {
+                $legacyUrl = str_replace(CMS_API_URL, LEGACY_CMS_API_URL, $baseUrl . $endpoints[$key]);
+                $rch = curl_init($legacyUrl);
+                curl_setopt($rch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($rch, CURLOPT_HTTPHEADER, api_auth_headers());
+                curl_setopt($rch, CURLOPT_CONNECTTIMEOUT, 2);
+                curl_setopt($rch, CURLOPT_TIMEOUT, 8);
+                curl_setopt($rch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($rch, CURLOPT_SSL_VERIFYHOST, 0);
+                $content = curl_exec($rch);
+                curl_close($rch);
+                $decoded = json_decode((string) $content, true);
+            }
             if (is_array($decoded) && function_exists('cmsFixUtf8Deep')) {
                 $decoded = cmsFixUtf8Deep($decoded);
             }
@@ -357,51 +390,9 @@ if (!function_exists('cmsApiStoreScopedKey')) {
     }
 }
 
-if (!function_exists('cmsApiRefreshQueuePath')) {
-    function cmsApiRefreshQueuePath(): string
-    {
-        return dirname(__DIR__) . '/cache/api-refresh-queue.json';
-    }
-}
-
-if (!function_exists('cmsApiSpawnCacheRefresh')) {
-    /**
-     * CMS refresh must not run inside the page request. PHP keeps the browser waiting until the
-     * script, including shutdown work, actually exits.
-     */
-    function cmsApiSpawnCacheRefresh(): void
-    {
-        $script = dirname(__DIR__) . '/scripts/refresh-cms-cache.php';
-        $php = PHP_BINARY;
-        if (!is_file($script) || $php === '' || !is_file($php)) {
-            return;
-        }
-
-        $stamp = dirname(__DIR__) . '/cache/api-refresh-stamp';
-        if (is_file($stamp) && (time() - (int) filemtime($stamp)) < 8) {
-            return;
-        }
-        @touch($stamp);
-
-        if (stripos(PHP_OS, 'WIN') === 0) {
-            $cmdExe = getenv('ComSpec');
-            if (!is_string($cmdExe) || !is_file($cmdExe)) {
-                $cmdExe = 'C:\\Windows\\System32\\cmd.exe';
-            }
-            $cmd = escapeshellarg($cmdExe) . ' /C start /B "" ' . escapeshellarg($php) . ' ' . escapeshellarg($script);
-            @pclose(@popen($cmd, 'r'));
-
-            return;
-        }
-
-        @exec(escapeshellarg($php) . ' ' . escapeshellarg($script) . ' > /dev/null 2>&1 &');
-    }
-}
-
 if (!function_exists('cmsApiRefreshScopedKeysAsync')) {
     /**
-     * Queue expired CMS keys and refresh them in a separate process.
-     * The visitor is served from the existing cache and does not wait.
+     * Refresh expired cache keys after the HTTP response is sent (stale-while-revalidate).
      *
      * @param array<string, string> $endpoints
      */
@@ -411,24 +402,41 @@ if (!function_exists('cmsApiRefreshScopedKeysAsync')) {
             return;
         }
 
-        $queueFile = cmsApiRefreshQueuePath();
-        $queued = [];
-        if (is_file($queueFile)) {
-            $decoded = json_decode((string) file_get_contents($queueFile), true);
-            if (is_array($decoded)) {
-                $queued = $decoded;
+        register_shutdown_function(static function () use ($endpoints): void {
+            if (!function_exists('cmsApiCurlMultiFetch') || !function_exists('cmsApiScopedCachePath')) {
+                return;
             }
-        }
-        foreach ($endpoints as $key => $endpoint) {
-            $queued[$key] = $endpoint;
-        }
 
-        $cacheDir = dirname($queueFile);
-        if (!is_dir($cacheDir)) {
-            @mkdir($cacheDir, 0755, true);
-        }
-        @file_put_contents($queueFile, json_encode($queued), LOCK_EX);
-        cmsApiSpawnCacheRefresh();
+            $fresh = cmsApiCurlMultiFetch($endpoints);
+            $cacheFile = cmsApiScopedCachePath();
+            $stored = ['keys' => [], 'times' => []];
+            if (is_file($cacheFile)) {
+                $decoded = json_decode((string) file_get_contents($cacheFile), true);
+                if (
+                    is_array($decoded)
+                    && function_exists('cmsApiScopedCacheHasLiveData')
+                    && cmsApiScopedCacheHasLiveData($decoded)
+                ) {
+                    $stored['keys'] = is_array($decoded['keys'] ?? null) ? $decoded['keys'] : [];
+                    $stored['times'] = is_array($decoded['times'] ?? null) ? $decoded['times'] : [];
+                }
+            }
+
+            $now = time();
+            foreach ($fresh as $key => $value) {
+                if (!cmsApiResponseIsUsable($value)) {
+                    continue;
+                }
+                $stored['keys'][$key] = $value;
+                $stored['times'][$key] = $now;
+            }
+
+            $cacheDir = dirname($cacheFile);
+            if (!is_dir($cacheDir)) {
+                @mkdir($cacheDir, 0755, true);
+            }
+            @file_put_contents($cacheFile, json_encode($stored));
+        });
     }
 }
 
@@ -466,6 +474,7 @@ if (!function_exists('cmsApiFetchScopedEndpoints')) {
 
         $toFetch = [];
         $staleRefresh = [];
+        $grace = function_exists('cmsApiStaleGraceTtl') ? cmsApiStaleGraceTtl() : 0;
 
         foreach ($endpoints as $key => $endpoint) {
             $fetchedAt = (int) ($stored['times'][$key] ?? 0);
@@ -476,7 +485,15 @@ if (!function_exists('cmsApiFetchScopedEndpoints')) {
             $requiresLive = function_exists('cmsApiEndpointRequiresLiveFetch')
                 && cmsApiEndpointRequiresLiveFetch($key, $endpoint);
 
-            if ($requiresLive || !$hasStale) {
+            if ($requiresLive) {
+                $toFetch[$key] = $endpoint;
+                if (function_exists('cmsProfileRecordCacheMiss')) {
+                    cmsProfileRecordCacheMiss($key, 'file-live');
+                }
+                continue;
+            }
+
+            if (!$hasStale) {
                 $toFetch[$key] = $endpoint;
                 if (function_exists('cmsProfileRecordCacheMiss')) {
                     cmsProfileRecordCacheMiss($key, 'file');
@@ -485,10 +502,20 @@ if (!function_exists('cmsApiFetchScopedEndpoints')) {
             }
 
             if ($isExpired) {
-                // Keep serving the last good CMS payload. Refresh runs after the response is sent.
-                $staleRefresh[$key] = $endpoint;
-                if (function_exists('cmsProfileRecordCacheHit')) {
-                    cmsProfileRecordCacheHit($key, 'file-stale');
+                // Never serve a stale nav — deleted CMS items must disappear immediately.
+                $allowStale = $key !== 'menu_data'
+                    && $grace > 0
+                    && ($now - $fetchedAt) < ($keyTtl + $grace);
+                if ($allowStale) {
+                    $staleRefresh[$key] = $endpoint;
+                    if (function_exists('cmsProfileRecordCacheHit')) {
+                        cmsProfileRecordCacheHit($key, 'file-stale');
+                    }
+                    continue;
+                }
+                $toFetch[$key] = $endpoint;
+                if (function_exists('cmsProfileRecordCacheMiss')) {
+                    cmsProfileRecordCacheMiss($key, 'file');
                 }
                 continue;
             }
@@ -509,8 +536,7 @@ if (!function_exists('cmsApiFetchScopedEndpoints')) {
             foreach ($fresh as $key => $value) {
                 if (!cmsApiResponseIsUsable($value)) {
                     if (!isset($stored['keys'][$key])) {
-                        $stored['keys'][$key] = ['status' => 'success', 'data' => []];
-                        $stored['times'][$key] = $now;
+                        unset($stored['keys'][$key], $stored['times'][$key]);
                     }
                     continue;
                 }
@@ -574,7 +600,15 @@ if (!function_exists('cmsApiSeedCurlCacheFromBulk')) {
         ];
 
         $cache = &cms_curl_json_cache_ref();
+        $skipHomeSeed = !empty($GLOBALS['school_is_index_page']);
+        $liveSlug = trim((string) ($GLOBALS['cms_page_slug'] ?? ''));
         foreach ($map as $key => $path) {
+            if ($skipHomeSeed && $key === 'home_data') {
+                continue;
+            }
+            if ($liveSlug !== '' && $key === 'home_data' && str_ends_with($path, '/' . $liveSlug)) {
+                continue;
+            }
             if (!isset($data[$key]) || !is_array($data[$key])) {
                 continue;
             }
