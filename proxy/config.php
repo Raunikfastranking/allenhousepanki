@@ -91,13 +91,16 @@ if (!function_exists('cms_curl_get_json')) {
             return $cache[$url];
         }
 
-        $timeoutSeconds = min(4, max(2, $timeoutSeconds));
+        $timeoutSeconds = max(2, $timeoutSeconds);
         $headers = api_auth_headers($noCache ? ['Cache-Control: no-cache'] : []);
         if (!empty($GLOBALS['cms_track_network']) && is_array($GLOBALS['cms_track_network'])) {
             $GLOBALS['cms_track_network']['count'] = (int) ($GLOBALS['cms_track_network']['count'] ?? 0) + 1;
             $GLOBALS['cms_track_network']['urls'][] = $url;
         }
         $response = cms_curl_exec_json($url, $timeoutSeconds, $headers, true);
+        if ($response === null) {
+            $response = cms_curl_exec_json($url, $timeoutSeconds, $headers, false);
+        }
 
         if (!is_array($response)) {
             return null;
@@ -120,9 +123,8 @@ if (!function_exists('cms_curl_exec_json')) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $timeoutSeconds = min(4, max(2, $timeoutSeconds));
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, min(2, $timeoutSeconds));
-        curl_setopt($ch, CURLOPT_TIMEOUT, $timeoutSeconds);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, min(3, $timeoutSeconds));
+        curl_setopt($ch, CURLOPT_TIMEOUT, min(8, $timeoutSeconds));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         if ($verifySsl) {
             apply_curl_ssl_options($ch);
@@ -132,23 +134,7 @@ if (!function_exists('cms_curl_exec_json')) {
         }
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $errno = curl_errno($ch);
         curl_close($ch);
-
-        $sslFailed = $verifySsl && in_array($errno, [35, 51, 58, 59, 60], true);
-        if ($sslFailed) {
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, min(2, $timeoutSeconds));
-            curl_setopt($ch, CURLOPT_TIMEOUT, $timeoutSeconds);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-        }
 
         if (($response === false || $httpCode !== 200) && defined('LEGACY_CMS_API_URL') && defined('CMS_API_URL')) {
             $legacyUrl = str_replace(CMS_API_URL, LEGACY_CMS_API_URL, $url);
@@ -156,7 +142,7 @@ if (!function_exists('cms_curl_exec_json')) {
                 $ch = curl_init();
                 curl_setopt($ch, CURLOPT_URL, $legacyUrl);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, min(2, $timeoutSeconds));
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, min(3, $timeoutSeconds));
                 curl_setopt($ch, CURLOPT_TIMEOUT, $timeoutSeconds);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -238,8 +224,8 @@ if (!function_exists('cms_prefetch_json_urls')) {
         foreach ($pending as $url) {
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 20);
             curl_setopt($ch, CURLOPT_HTTPHEADER, api_auth_headers());
             apply_curl_ssl_options($ch);
             curl_multi_add_handle($mh, $ch);
@@ -293,7 +279,7 @@ if (!function_exists('cms_prefetch_endpoints')) {
                 $urls[] = rtrim(LEGACY_CMS_API_URL, '/') . '/' . $endpoint;
             }
         }
-        cms_prefetch_json_urls(array_values(array_unique($urls)));
+        cms_prefetch_json_urls($urls);
     }
 }
 
@@ -341,27 +327,13 @@ if (!function_exists('cms_fetch_json_endpoint')) {
             }
         }
 
-        if (function_exists('cmsScopedFileCacheGetAny')) {
-            $stale = cmsScopedFileCacheGetAny($fileKey);
-            if (is_array($stale) && function_exists('cmsApiResponseIsUsable') && cmsApiResponseIsUsable($stale)) {
-                if (function_exists('cmsApiRefreshScopedKeysAsync')) {
-                    cmsApiRefreshScopedKeysAsync([
-                        $fileKey => '/' . $endpoint,
-                    ]);
-                }
-                $cache[$endpoint] = $stale;
-
-                return $stale;
-            }
-        }
-
         $primaryUrl = rtrim(CMS_API_URL, '/') . '/' . $endpoint;
         $legacyUrl = rtrim(LEGACY_CMS_API_URL, '/') . '/' . $endpoint;
         $preferPrimary = cms_is_new_cms_route($endpoint);
 
         if ($preferPrimary) {
             $data = cms_curl_get_json($primaryUrl);
-            if (!is_array($data) && $legacyUrl !== $primaryUrl) {
+            if (!is_array($data)) {
                 $data = cms_curl_get_json($legacyUrl);
             }
         } else {
