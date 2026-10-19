@@ -41,7 +41,7 @@ try {
         foreach ($fresh as $key => $value) {
             if (!cmsApiResponseIsUsable($value)) {
                 if (!isset($stored['keys'][$key])) {
-                    $stored['keys'][$key] = ['status' => 'success', 'data' => []];
+                    $stored['keys'][$key] = ['status' => 'error', 'data' => []];
                     $stored['times'][$key] = $now;
                 }
                 continue;
