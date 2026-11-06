@@ -85,13 +85,12 @@ $allenNavItems = cmsNavItems();
 </div>
 
 <div id="popupForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[10050]" aria-hidden="true">
-    <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md relative mx-1" role="dialog" aria-modal="true" aria-labelledby="enquiryFormTitle">
+    <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md relative mx-1" role="dialog" aria-modal="true">
         <!-- Close Button -->
         <button type="button" id="closePopup" aria-label="Close enquiry form" class="absolute top-3 right-3 text-gray-500 hover:text-red-500 text-xl font-bold z-30 cursor-pointer">
             &times;
         </button>
 
-        <h2 id="enquiryFormTitle" class="text-2xl font-semibold mb-4">Enquiry Form</h2>
         <script>
         window.closePopup = window.closePopup || function () {
             var el = document.getElementById('popupForm');
@@ -109,98 +108,176 @@ $allenNavItems = cmsNavItems();
             el.setAttribute('aria-hidden', 'false');
         };
         </script>
-         <form class="space-y-4" id="enquiryForm" method="POST">
-            <div>
-                <select name="class-selection" required="" id="esession" class="w-full border border-gray-300 p-2 rounded-md text-gray-500">
-                    <!-- <option value="" selected>Enquiry For Session</option> -->
-                    <?php
-                    $sessions = include __DIR__ . "/session-api.php";
-                    if (is_array($sessions)) {
-                         echo "<option value='' disabled selected>Select Session</option>";
-                        foreach ($sessions as $item):
-                            $sess = htmlspecialchars($item['session'] ?? '');
-                            echo "<option value='$sess'>$sess</option>";
-                        endforeach;
-                    }
-                    ?>
-                </select>
-            </div>
-            <div>
-                <select name="class-selection" id="egrade" required
-                    class="w-full border border-gray-300 p-[11px] rounded-md text-[#808080cc]">
-                    <!-- <option value="" selected>Select Grade</option> -->
-                    <?php include __DIR__ . "/grade-api.php"; ?>
-                </select>
-                <span id="classError" class="text-red-500 text-sm hidden">Please select a class.</span>
-            </div>
-
-            <div>
-                <input type="text" name="student-name" id="estudent_name" placeholder="Student Name"
-                    class="w-full border border-gray-300 p-2 rounded-md" required>
-                <span id="student-error" class="text-red-500 text-sm mt-1 hidden">Only letters and spaces
-                    allowed.</span>
-            </div>
-
-            <div>
-                <input type="text" name="parent-name" id="eparent_name" placeholder="Parents Name"
-                    class="w-full border border-gray-300 p-2 rounded-md" required>
-                <span id="parent-error" class="text-red-500 text-sm mt-1 hidden">Only letters and spaces allowed.</span>
-            </div>
-
-            <div>
-                <input type="text" name="mobile" id="emobile" placeholder="Mobile No."
-                    class="w-full border border-gray-300 p-2 rounded-md" required maxlenth="10">
-                <span id="mobile-error" class="text-red-500 text-sm mt-1 hidden">Please enter valid phone number</span>
-            </div>
-
-            <div>
-                <input type="text" name="email" id="eemail" placeholder="E-mail"
-                    class="w-full border border-gray-300 p-2 rounded-md" required>
-                <span id="email-error" class="text-red-500 text-sm mt-1 hidden">Please enter a valid email
-                    address.</span>
-            </div>
-
-            <div class="mt-4 relative customSelect">
-                <select id="ecity" name="city" class="hidden">
-                    <option value="">Select City</option>
-                    <?php include __DIR__ . "/get-city.php"; ?>
-                </select>
-
-                <!-- Fake dropdown display -->
-                <div class="border border-gray-300 p-[11px] rounded-md bg-white cursor-pointer flex justify-between items-center">
-                    <span class="selected-text text-[#808080cc]">Select City</span>
-                    <span>▼</span>
-                </div>
-
-                <!-- Dropdown options -->
-                <div class="absolute mt-1 border border-gray-300 rounded-md bg-white shadow-md hidden z-50 w-full">
-                    <input type="text" placeholder="Search..."
-                        class="w-full p-2 border-b border-gray-300 outline-none">
-                    <ul class="max-h-48 overflow-y-auto"></ul>
-                </div>
-            </div>
-
-            <!-- Pincode -->
-            <div>
-                <input type="text" name="pincode" id="epincode" placeholder="Enter your Pincode"
-                    class="w-full border border-gray-300 p-2 rounded-md" maxlength="6"
-                    oninput="this.value=this.value.replace(/\D/g,'')" required>
-                <span id="pincode-error" class="text-red-500 text-sm hidden">Please enter a valid Pincode.</span>
-            </div>
-
-            <div class="flex items-start gap-2">
-                <input type="checkbox" id="popupCheckbox" required />
-                <label for="popupCheckbox" class="text-sm">I agree to <a href="termsandconditions"
-                        class="text-blue-600 underline">Terms
-                        and Conditions</a>.</label>
-                <span id="checkboxError" class="text-red-500 text-sm hidden">You must agree to the terms and
-                    conditions.</span>
-            </div>
-            <input type="hidden" name="source" id="source">
-            <button type="submit" id="submitBtn" class="w-full py-2 bg-blue-main text-white rounded-md hover:bg-red-500 transition">Submit</button>
-        </form>
+        <div id="ee-form-6" data-ee-form-id="form-6"></div>
     </div>
 </div>
+
+<style>
+/* ExtraaEdge enquiry widget — matched to site enquiry form design */
+.ee-form-widget {
+    --ee-primary-color: #002A5B;
+    --ee-border-color: #d1d5db;
+    --ee-captche-border-color: #d1d5db;
+    --ee-main-txt-color: #111827;
+    --ee-secondary-color: #6b7280;
+    --ee-font-family: inherit;
+    background: transparent;
+    font-size: 16px;
+    color: inherit;
+}
+.ee-form-widget.ee-container,
+.ee-form-widget .ee-container {
+    padding: 0 !important;
+    border-radius: 0;
+    background: transparent;
+}
+.ee-form-widget .ee-form-heading {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #111827;
+    text-align: left;
+    margin: 0 0 12px;
+    padding: 0;
+}
+#ee-form-6-inline .ee-form-heading {
+    display: none;
+}
+.ee-form-widget .ee-form-instruction {
+    margin: 0 0 8px;
+}
+.ee-form-widget .ee-form-instruction:empty {
+    display: none;
+}
+.ee-form-widget .ee-form-body,
+.ee-form-widget .ee-form-body.TWO_COLUMNS {
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    gap: 10px;
+}
+.ee-form-widget .ee-form-body > .ee-row,
+.ee-form-widget .ee-form-body.TWO_COLUMNS > .ee-row,
+.ee-form-widget .ee-form-body.TWO_COLUMNS > .ee-row:not(.full-width),
+.ee-form-widget .ee-form-body.TWO_COLUMNS > .ee-row.full-width {
+    width: 100% !important;
+    margin: 0 !important;
+}
+.ee-form-widget input:not([type=checkbox]):not([type=radio]):not([type=search]):not([type=tel]),
+.ee-form-widget select,
+.ee-form-widget textarea {
+    width: 100%;
+    padding: 6px 10px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    font-size: 15px;
+    background: #fff;
+    box-shadow: none;
+}
+/* tel inputs are wrapped by intlTelInput — JS sets padding-left inline, keep it */
+.ee-form-widget .iti {
+    width: 100%;
+}
+.ee-form-widget input[type=tel] {
+    width: 100%;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    padding-right: 10px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    font-size: 15px;
+    background: #fff;
+    box-shadow: none;
+}
+.ee-form-widget select {
+    color: #6b7280;
+}
+.ee-form-widget label {
+    padding: 0 0 6px;
+    font-weight: 500;
+    font-size: 14px;
+    color: #374151;
+}
+.ee-form-widget input[type=checkbox],
+.ee-form-widget input[type=radio] {
+    width: auto;
+    accent-color: #002A5B;
+}
+.ee-form-widget .ee-row:has(input[type="checkbox"]) {
+    font-size: 14px;
+}
+.ee-form-widget .select2-container {
+    width: 100% !important;
+}
+.ee-form-widget .select2-container--default .select2-selection--single,
+.ee-form-widget .select2-container--default .select2-selection--multiple {
+    min-height: 36px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 2px 8px;
+}
+.ee-form-widget .captchaContainer {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+}
+.ee-form-widget .captchaContainer .cpatcha {
+    flex: 0 0 auto;
+    margin-right: 0;
+}
+.ee-form-widget .captchaContainer .ee-row {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+}
+/* Popup overlay scrolls so tall form is reachable on small screens */
+#popupForm {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    align-items: flex-start;
+}
+#popupForm > div {
+    margin: auto 4px;
+}
+.ee-form-widget .controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+    gap: 10px;
+    padding: 0 !important;
+    margin-top: 10px;
+}
+.ee-form-widget .controls .btn {
+    width: 100%;
+    margin-right: 0 !important;
+}
+.ee-form-widget .btn.btn-submit,
+.ee-form-widget .btn.btn-feedback-control {
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    background-color: #002A5B;
+    border: 1px solid #002A5B;
+    color: #fff;
+}
+.ee-form-widget .btn.btn-submit:hover,
+.ee-form-widget .btn.btn-feedback-control:hover {
+    background-color: #ef4444;
+    border-color: #ef4444;
+    color: #fff;
+}
+/* ExtraaEdge thank-you modal/toast must sit above the site popup (z-index: 10050) */
+.modal-backdrop {
+    z-index: 10055 !important;
+}
+.modal.ee-form-widget-feedback,
+.toastr-container {
+    z-index: 10060 !important;
+}
+</style>
 
 <div id="allen-site-header" class="allen-site-header">
 <div class="allen-top-header-bar allen-top-header-bar--desktop bg-blue-main py-2 px-2 sm:px-4 lg:px-6 justify-between items-center text-[12px] w-full max-w-full overflow-hidden">

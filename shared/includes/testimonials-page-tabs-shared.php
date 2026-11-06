@@ -164,6 +164,13 @@ if (!function_exists('cmsTestimonialsPageTabStyles')) {
                     overflow: hidden;
                     text-align: left !important;
                 }
+                .ah-testimonials-wrap .ah-page-testimonial-card .short-text,
+                .ah-testimonials-wrap .ah-page-testimonial-card .full-text:not(.hidden) {
+                    flex: 0 1 auto;
+                    min-height: 0;
+                    max-height: 160px;
+                    overflow-y: auto;
+                }
                 .ah-testimonials-wrap .ah-page-testimonial-card .moreless-button {
                     margin-left: 0;
                     margin-right: 0;

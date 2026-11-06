@@ -306,6 +306,66 @@ $jhansiSiteBaseUrl = site_origin_url();
     });
 })();
 </script>
+<script>
+window.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector("[data-ee-form-id]")) return;
+    window.ee_form_widget_baseurl = "https://eeconfigstaticfiles.blob.core.windows.net/staticfiles/ee-form-widget/";
+    if (!document.getElementById("__formWidgetCss")) {
+        var e = document.createElement("link");
+        e.id = "__formWidgetCss";
+        e.rel = "stylesheet";
+        e.href = window.ee_form_widget_baseurl + "css/stylesheet.min.css";
+        e.type = "text/css";
+        document.getElementsByTagName("head")[0].appendChild(e);
+    }
+    if (window.__eeFormWidgetLoading) {
+        return;
+    }
+    window.__eeFormWidgetLoading = true;
+    var t = document.createElement("script");
+    t.type = "text/javascript";
+    t.onload = async function () {
+        var mounts = document.querySelectorAll("[data-ee-form-id]");
+        for (var i = 0; i < mounts.length; i++) {
+            var widget = new eeFormWidget();
+            await widget.init("superhouseeducation", mounts[i].getAttribute("data-ee-form-id"), mounts[i].id);
+        }
+        fixEeCaptchaDuplicateIds();
+        setTimeout(fixEeCaptchaDuplicateIds, 3000);
+    };
+    /* Same form rendered twice creates duplicate "formId-captchaCanvas" ids;
+       the vendor refresh always redraws the first one. Rename duplicates and
+       repoint their field instance's refreshCaptcha at the renamed canvas. */
+    function fixEeCaptchaDuplicateIds() {
+        var seen = {};
+        document.querySelectorAll('canvas[id$="-captchaCanvas"]').forEach(function (cv, i) {
+            if (!seen[cv.id]) {
+                seen[cv.id] = true;
+                return;
+            }
+            var box = cv.closest(".captchaContainer") || cv.parentElement;
+            var btn = box ? box.querySelector(".refreshBtn") : null;
+            var ref = null;
+            try {
+                ref = window.jQuery && btn ? jQuery(btn).data("classRef") : null;
+            } catch (e) {}
+            var newId = cv.id + "-" + i;
+            cv.id = newId;
+            if (ref && typeof ref.generateCaptcha === "function") {
+                ref.refreshCaptcha = function () {
+                    var c = document.getElementById(newId);
+                    if (!c) return;
+                    var ctx = c.getContext("2d");
+                    ctx.clearRect(0, 0, c.width, c.height);
+                    ref.generateCaptcha(ctx);
+                };
+            }
+        });
+    }
+    t.src = window.ee_form_widget_baseurl + "js/eeFormWidget.min.js";
+    document.getElementsByTagName("head")[0].appendChild(t);
+});
+</script>
 <?php
 if (empty($GLOBALS['school_is_index_page'])) {
     require_once __DIR__ . '/cms-inner-carousel-init.php';
