@@ -125,6 +125,27 @@ $jhansiSiteBaseUrl = site_origin_url();
                 closePopup();
             }
         });
+
+        // The ExtraaEdge widget re-renders a blank form inside #popupForm on
+        // success; close our wrapper so only its thank-you modal remains.
+        var eeObserver = new MutationObserver(function (mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                var added = mutations[i].addedNodes;
+                for (var j = 0; j < added.length; j++) {
+                    var node = added[j];
+                    if (node.nodeType !== 1) continue;
+                    var fb = node.matches && node.matches(".ee-form-widget-feedback.success")
+                        ? node
+                        : (node.querySelector ? node.querySelector(".ee-form-widget-feedback.success") : null);
+                    if (fb) {
+                        if (popup && popup.contains(fb)) document.body.appendChild(fb);
+                        closePopup();
+                        return;
+                    }
+                }
+            }
+        });
+        eeObserver.observe(document.body, { childList: true, subtree: true });
     }
 
     function initEnquiryForm() {
