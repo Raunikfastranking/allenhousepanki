@@ -1397,7 +1397,7 @@ nav .links li {
   .cms-about-page .cms-about-beyond-copy .ql-editor,
   .cms-about-page .cms-about-story-copy .ql-editor *,
   .cms-about-page .cms-about-beyond-copy .ql-editor * {
-    color: #4b5563 !important;
+    color: #4b5563;
   }
 
   .cms-about-page .cms-about-story-copy .about-carousel-desc p,
@@ -1695,3 +1695,4 @@ nav .links li {
 }
 
 /* About Us page — Ghaziabad layout */
+}

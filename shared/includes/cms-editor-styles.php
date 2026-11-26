@@ -1,9 +1,10 @@
 <style>
-    /* Quill / CMS rich text — normal block flow (pre-wrap doubles line gaps in <p> HTML) */
+    /* Quill / CMS rich text — pre-wrap preserves editor spaces;
+       newlines between tags are already stripped by PHP, so no unwanted breaks. */
     .ql-editor {
         height: auto !important;
         padding: 0 !important;
-        white-space: normal !important;
+        white-space: pre-wrap;
         word-wrap: break-word;
         overflow-wrap: break-word;
         line-height: 1.45;
@@ -16,21 +17,31 @@
     }
 
     .ql-editor p {
-        margin: 0 0 1.4em;
-        white-space: normal;
-        line-height: 1.45;
+        margin: 0.75em 0;
+        line-height: 1.6;
     }
 
     .ql-editor p:last-child {
         margin-bottom: 0;
     }
 
+    .ql-editor h1,
+    .ql-editor h2,
+    .ql-editor h3,
+    .ql-editor h4,
+    .ql-editor h5,
+    .ql-editor h6 {
+        margin: 1.25em 0 0.6em;
+        line-height: 1.3;
+    }
+
     /* Blank lines created in Quill (extra Enter) — keep visible on the frontend */
     .ql-editor p:empty,
     .ql-editor p:has(> br:only-child) {
-        margin: 0 0 1.4em;
+        margin-top: 0;
+        margin-bottom: 1.4em;
         min-height: 1.4em;
-        line-height: 1.45 !important;
+        line-height: 1.6;
         height: auto;
         overflow: visible;
     }
@@ -59,7 +70,7 @@
     .cms-page-content .ql-editor h2,
     .cms-page-content .ql-editor h3,
     .cms-page-content .ql-editor h4 {
-        margin: 0.4em 0 0.2em;
+        margin: 1.25em 0 0.6em;
         line-height: 1.3;
     }
 
@@ -83,7 +94,6 @@
     .cms-hero-inner,
     .cms-section-body,
     .cms-rich-text {
-        white-space: normal;
         word-wrap: break-word;
         overflow-wrap: break-word;
         line-height: 1.45;
@@ -92,8 +102,8 @@
     .cms-hero-inner p,
     .cms-section-body p,
     .cms-rich-text p {
-        margin: 0 0 1.4em;
-        line-height: 1.45;
+        margin: 0.75em 0;
+        line-height: 1.6;
     }
 
     .cms-hero-inner p:last-child,
@@ -103,7 +113,7 @@
     }
 
     .cms-page-content .ql-editor p {
-        margin: 0 0 1.4em;
+        margin: 0.75em 0;
     }
 
     .cms-page-content .ql-editor p:last-child {
@@ -317,5 +327,49 @@
     .ql-editor ul > li::marker,
     .main .ql-editor ul > li::marker {
         content: normal !important;
+    }
+
+    /* ===== CMS editor parity — pasted markup normalization (all pages) ===== */
+    /* Justified text stretches word spacing; the editor preview shows left
+       alignment, so left-align matches what authors see. */
+    :is(.cms-page-content, .cms-home-sections, .cms-section, .cms-section-body,
+        .cms-rich-text, .cms-hero-inner, .ql-editor) [style*="text-align: justify" i],
+    :is(.cms-page-content, .cms-home-sections, .cms-section, .cms-section-body,
+        .cms-rich-text, .cms-hero-inner, .ql-editor) [style*="text-align:justify" i] {
+        text-align: left !important;
+    }
+
+    /* Editor default text colour is black; keep it unless a coloured band
+       overrides for contrast. */
+    .ql-editor {
+        color: #000;
+    }
+    .bg-blue-main .ql-editor,
+    .ab-cr-bg .ql-editor,
+    .facilities-feature-band .ql-editor,
+    .pedagogy-feature-band .ql-editor,
+    .cms-facilities-row--blue .ql-editor,
+    .facilities-feature-copy .ql-editor,
+    .pedagogy-feature-copy .ql-editor {
+        color: inherit;
+    }
+
+    /* Tailwind reset flattens heading size/weight. Restore editor-like heading
+       look for CMS markup that carries no inline size/weight of its own. */
+    .ql-editor h1,
+    .ql-editor h2,
+    .ql-editor h3,
+    .ql-editor h4,
+    .ql-editor h5,
+    .ql-editor h6 {
+        font-size: revert;
+        font-weight: revert;
+    }
+
+    /* Unstyled links inside CMS content should look like links (editor default). */
+    .ql-editor a:not([style]),
+    .cms-rich-text a:not([style]) {
+        color: #1155cc;
+        text-decoration: underline;
     }
 </style>
