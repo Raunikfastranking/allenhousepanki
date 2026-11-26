@@ -1,14 +1,16 @@
 <style>
-    /* Quill / CMS rich text — normal block flow (pre-wrap doubles line gaps in <p> HTML) */
+    /* CMS rich text (TinyMCE / Quill) — normal flow; match editor preview, not pre-wrap gaps. */
     .ql-editor {
         height: auto !important;
         padding: 0 !important;
-        white-space: normal !important;
+        white-space: normal;
         word-wrap: break-word;
         overflow-wrap: break-word;
         line-height: 1.45;
         overflow: visible !important;
         overflow-y: visible !important;
+        font-size: 1rem;
+        color: #000;
     }
 
     .ql-editor .ql-ui {
@@ -16,21 +18,31 @@
     }
 
     .ql-editor p {
-        margin: 0 0 1.4em;
-        white-space: normal;
-        line-height: 1.45;
+        margin: 0.75em 0;
+        line-height: 1.6;
     }
 
     .ql-editor p:last-child {
         margin-bottom: 0;
     }
 
+    .ql-editor h1,
+    .ql-editor h2,
+    .ql-editor h3,
+    .ql-editor h4,
+    .ql-editor h5,
+    .ql-editor h6 {
+        margin: 1.25em 0 0.6em;
+        line-height: 1.3;
+    }
+
     /* Blank lines created in Quill (extra Enter) — keep visible on the frontend */
     .ql-editor p:empty,
     .ql-editor p:has(> br:only-child) {
-        margin: 0 0 1.4em;
+        margin-top: 0;
+        margin-bottom: 1.4em;
         min-height: 1.4em;
-        line-height: 1.45 !important;
+        line-height: 1.6;
         height: auto;
         overflow: visible;
     }
@@ -59,7 +71,7 @@
     .cms-page-content .ql-editor h2,
     .cms-page-content .ql-editor h3,
     .cms-page-content .ql-editor h4 {
-        margin: 0.4em 0 0.2em;
+        margin: 1.25em 0 0.6em;
         line-height: 1.3;
     }
 
@@ -83,7 +95,6 @@
     .cms-hero-inner,
     .cms-section-body,
     .cms-rich-text {
-        white-space: normal;
         word-wrap: break-word;
         overflow-wrap: break-word;
         line-height: 1.45;
@@ -92,8 +103,8 @@
     .cms-hero-inner p,
     .cms-section-body p,
     .cms-rich-text p {
-        margin: 0 0 1.4em;
-        line-height: 1.45;
+        margin: 0.75em 0;
+        line-height: 1.6;
     }
 
     .cms-hero-inner p:last-child,
@@ -103,7 +114,7 @@
     }
 
     .cms-page-content .ql-editor p {
-        margin: 0 0 1.4em;
+        margin: 0.75em 0;
     }
 
     .cms-page-content .ql-editor p:last-child {
@@ -317,5 +328,30 @@
     .ql-editor ul > li::marker,
     .main .ql-editor ul > li::marker {
         content: normal !important;
+    }
+
+    .bg-blue-main .ql-editor,
+    .ab-cr-bg .ql-editor,
+    .facilities-feature-band .ql-editor,
+    .pedagogy-feature-band .ql-editor,
+    .cms-facilities-row--blue .ql-editor,
+    .facilities-feature-copy .ql-editor,
+    .pedagogy-feature-copy .ql-editor {
+        color: inherit;
+    }
+
+    /* Tailwind on wrappers flattens heading scale; restore TinyMCE / browser defaults. */
+    .ql-editor h1 { font-size: 2em; font-weight: 700; }
+    .ql-editor h2 { font-size: 1.5em; font-weight: 700; }
+    .ql-editor h3 { font-size: 1.17em; font-weight: 700; }
+    .ql-editor h4 { font-size: 1em; font-weight: 700; }
+    .ql-editor h5 { font-size: 0.83em; font-weight: 700; }
+    .ql-editor h6 { font-size: 0.67em; font-weight: 700; }
+
+    /* Unstyled links inside CMS content should look like links (editor default). */
+    .ql-editor a:not([style*="color"]),
+    .cms-rich-text a:not([style*="color"]) {
+        color: #1155cc;
+        text-decoration: underline;
     }
 </style>

@@ -1575,7 +1575,7 @@ if (!function_exists('cmsRenderBlogDetailContent')) {
                 $bodyHtml = function_exists('cmsBlogDetailPrepareContent')
                     ? cmsBlogDetailPrepareContent($body, $mainTitle)
                     : (function_exists('cmsPrepareCmsHtml') ? cmsPrepareCmsHtml($body) : $body);
-                echo '<div class="w-full sm:w-[90%] text-[#70747F] text-[18px] sm:text-[20px] mt-2">';
+                echo '<div class="w-full sm:w-[90%] cms-rich-text mt-2">';
                 echo '<div class="ql-snow"><div class="ql-editor">' . $bodyHtml . '</div></div>';
                 echo '</div>';
             }
@@ -1589,7 +1589,7 @@ if (!function_exists('cmsRenderBlogDetailContent')) {
                 $bodyHtml = function_exists('cmsBlogDetailPrepareContent')
                     ? cmsBlogDetailPrepareContent($fallbackBody, $mainTitle)
                     : (function_exists('cmsPrepareCmsHtml') ? cmsPrepareCmsHtml($fallbackBody) : $fallbackBody);
-                echo '<div class="text-[#70747F] text-[18px] sm:text-[20px] mt-2">';
+                echo '<div class="cms-rich-text mt-2">';
                 echo '<div class="ql-snow"><div class="ql-editor">' . $bodyHtml . '</div></div>';
                 echo '</div>';
             }
