@@ -417,8 +417,9 @@ if (!function_exists('cmsPrepareCmsHtml')) {
 
         $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        // Collapse insignificant whitespace between tags only (preserve blank <p> lines from the editor).
-        $html = preg_replace('/>\s+</u', '><', $html) ?? $html;
+        // Strip pretty-print newlines between tags only — do not remove spaces
+        // between inline tags (e.g. </a> <span>) or words glue together on the site.
+        $html = preg_replace('/>\s*[\r\n]+\s*</u', '><', $html) ?? $html;
 
         $html = cmsCleanupEditorTables($html);
         $html = cmsRewriteEditorInlineImages($html);

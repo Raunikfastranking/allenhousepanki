@@ -1,15 +1,16 @@
 <style>
-    /* Quill / CMS rich text — pre-wrap preserves editor spaces;
-       newlines between tags are already stripped by PHP, so no unwanted breaks. */
+    /* CMS rich text (TinyMCE / Quill) — normal flow; match editor preview, not pre-wrap gaps. */
     .ql-editor {
         height: auto !important;
         padding: 0 !important;
-        white-space: pre-wrap;
+        white-space: normal;
         word-wrap: break-word;
         overflow-wrap: break-word;
         line-height: 1.45;
         overflow: visible !important;
         overflow-y: visible !important;
+        font-size: 1rem;
+        color: #000;
     }
 
     .ql-editor .ql-ui {
@@ -329,21 +330,6 @@
         content: normal !important;
     }
 
-    /* ===== CMS editor parity — pasted markup normalization (all pages) ===== */
-    /* Justified text stretches word spacing; the editor preview shows left
-       alignment, so left-align matches what authors see. */
-    :is(.cms-page-content, .cms-home-sections, .cms-section, .cms-section-body,
-        .cms-rich-text, .cms-hero-inner, .ql-editor) [style*="text-align: justify" i],
-    :is(.cms-page-content, .cms-home-sections, .cms-section, .cms-section-body,
-        .cms-rich-text, .cms-hero-inner, .ql-editor) [style*="text-align:justify" i] {
-        text-align: left !important;
-    }
-
-    /* Editor default text colour is black; keep it unless a coloured band
-       overrides for contrast. */
-    .ql-editor {
-        color: #000;
-    }
     .bg-blue-main .ql-editor,
     .ab-cr-bg .ql-editor,
     .facilities-feature-band .ql-editor,
@@ -354,21 +340,17 @@
         color: inherit;
     }
 
-    /* Tailwind reset flattens heading size/weight. Restore editor-like heading
-       look for CMS markup that carries no inline size/weight of its own. */
-    .ql-editor h1,
-    .ql-editor h2,
-    .ql-editor h3,
-    .ql-editor h4,
-    .ql-editor h5,
-    .ql-editor h6 {
-        font-size: revert;
-        font-weight: revert;
-    }
+    /* Tailwind on wrappers flattens heading scale; restore TinyMCE / browser defaults. */
+    .ql-editor h1 { font-size: 2em; font-weight: 700; }
+    .ql-editor h2 { font-size: 1.5em; font-weight: 700; }
+    .ql-editor h3 { font-size: 1.17em; font-weight: 700; }
+    .ql-editor h4 { font-size: 1em; font-weight: 700; }
+    .ql-editor h5 { font-size: 0.83em; font-weight: 700; }
+    .ql-editor h6 { font-size: 0.67em; font-weight: 700; }
 
     /* Unstyled links inside CMS content should look like links (editor default). */
-    .ql-editor a:not([style]),
-    .cms-rich-text a:not([style]) {
+    .ql-editor a:not([style*="color"]),
+    .cms-rich-text a:not([style*="color"]) {
         color: #1155cc;
         text-decoration: underline;
     }

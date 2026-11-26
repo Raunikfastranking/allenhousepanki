@@ -427,7 +427,7 @@ if (!function_exists('cmsRenderSectionCards')) {
                 echo '<h3 class="text-blue-main font-bold text-lg mb-2">' . $title . '</h3>';
             }
             if ($body !== '') {
-                echo '<div class="ql-snow text-sm"><div class="ql-editor">' . $body . '</div></div>';
+                echo '<div class="ql-snow cms-rich-text"><div class="ql-editor">' . $body . '</div></div>';
             }
             echo '</div></article>';
         }
@@ -467,7 +467,7 @@ if (!function_exists('cmsRenderSectionGallery')) {
                     echo '<h3 class="text-blue-main font-semibold text-lg mb-1">' . $title . '</h3>';
                 }
                 if ($body !== '') {
-                    echo '<div class="ql-snow text-sm text-gray-600"><div class="ql-editor">' . $body . '</div></div>';
+                    echo '<div class="ql-snow cms-rich-text"><div class="ql-editor">' . $body . '</div></div>';
                 }
                 echo '</figcaption>';
             }

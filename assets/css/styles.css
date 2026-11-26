@@ -239,11 +239,9 @@ body.allen-main-fixed {
   font-family: "Poppins", sans-serif;
 }
 
-/* CMS font override — always Poppins, ignore CMS editor font selections */
-:is(.cms-page-content, .cms-home-sections, .cms-section, .cms-section-body, .cms-rich-text, .cms-hero-inner, .ql-editor),
-:is(.cms-page-content, .cms-home-sections, .cms-section, .cms-section-body, .cms-rich-text, .cms-hero-inner, .ql-editor) :not(.fa):not(.fas):not(.far):not(.fab):not([class*="fa-"]),
-[class*="ql-font-"] {
-  font-family: "Poppins", sans-serif !important;
+/* CMS rich text: site default font on the container; TinyMCE inline font-family is preserved. */
+:is(.cms-page-content, .cms-home-sections, .cms-section, .cms-section-body, .cms-rich-text, .cms-hero-inner, .ql-editor) {
+  font-family: "Poppins", sans-serif;
 }
 
 /* Default: no list markers site-wide (nav, carousels, layout). CMS content overrides below. */
