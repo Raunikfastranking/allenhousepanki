@@ -2,9 +2,18 @@
 
 declare(strict_types=1);
 
+/** Default CMS file-cache freshness window (seconds). CMS edits should appear within ~1–2 minutes site-wide. */
+if (!defined('CMS_DEFAULT_CONTENT_CACHE_TTL')) {
+    define('CMS_DEFAULT_CONTENT_CACHE_TTL', 60);
+}
+
+if (!defined('CMS_DEFAULT_STALE_GRACE_TTL')) {
+    define('CMS_DEFAULT_STALE_GRACE_TTL', 60);
+}
+
 if (!function_exists('cmsApiUsesFileCache')) {
     /**
-     * File cache keeps responses fast. CMS keys refresh in the background after cmsApiContentCacheTtl() (default 10s).
+     * File cache keeps responses fast. CMS keys refresh in the background after cmsApiContentCacheTtl().
      * Set CMS_FILE_CACHE=0 to disable (not recommended; every page then waits on the CMS API).
      */
     function cmsApiUsesFileCache(): bool
@@ -33,38 +42,45 @@ if (!function_exists('cmsApiUsesFileCache')) {
 }
 
 if (!function_exists('cmsApiContentCacheTtl')) {
-    /** Seconds before CMS keys are refreshed in the background. Visitors are not blocked on this wait. */
+    /** Fresh window (seconds). After this, keys revalidate in the background or on the next request. */
     function cmsApiContentCacheTtl(): int
     {
         $env = getenv('CMS_CONTENT_CACHE_TTL');
         if ($env !== false && is_numeric($env)) {
-            return max(10, (int) $env);
+            return max(30, min(120, (int) $env));
         }
 
-        return 10;
+        return CMS_DEFAULT_CONTENT_CACHE_TTL;
     }
 }
 
 if (!function_exists('cmsApiStaleGraceTtl')) {
     /**
-     * After TTL expires, keep serving cached JSON while refreshing in the background.
-     * Avoids 5–10s API waits on cache expiry. Set CMS_STALE_GRACE=0 to disable.
+     * After TTL expires, keep serving cached JSON briefly while refreshing in a separate process.
+     * Past TTL + grace, the next request fetches live CMS data synchronously.
      */
     function cmsApiStaleGraceTtl(): int
     {
         $env = getenv('CMS_STALE_GRACE');
         if ($env !== false && is_numeric($env)) {
-            return max(0, (int) $env);
+            return max(0, min(120, (int) $env));
         }
 
-        return 3600;
+        return CMS_DEFAULT_STALE_GRACE_TTL;
+    }
+}
+
+if (!function_exists('cmsApiMaxContentStaleSeconds')) {
+    /** Maximum age (seconds) of CMS JSON we will still serve before forcing a live fetch. */
+    function cmsApiMaxContentStaleSeconds(): int
+    {
+        return cmsApiContentCacheTtl() + cmsApiStaleGraceTtl();
     }
 }
 
 if (!function_exists('cmsApiEndpointTtl')) {
     /**
-     * Per-endpoint cache TTL (seconds). Every CMS key uses the same short TTL so edits show within about 10 seconds.
-     * Expired keys are still served immediately and refreshed after the response is sent.
+     * Per-endpoint cache TTL (seconds). Every CMS key uses the same TTL for predictable refresh site-wide.
      */
     function cmsApiEndpointTtl(string $key): int
     {

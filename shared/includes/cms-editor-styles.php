@@ -1,48 +1,47 @@
 <style>
-    /* CMS rich text (TinyMCE / Quill) — normal flow; match editor preview, not pre-wrap gaps. */
+    /*
+     * CMS rich text — match Quill/TinyMCE preview (same spacing & inline styles as CMS).
+     * Block margins default to 0 like .ql-editor; spacing comes from CMS HTML + inline style attributes.
+     */
     .ql-editor {
         height: auto !important;
         padding: 0 !important;
         white-space: normal;
         word-wrap: break-word;
         overflow-wrap: break-word;
-        line-height: 1.45;
         overflow: visible !important;
         overflow-y: visible !important;
-        font-size: 1rem;
-        color: #000;
+        font-size: inherit;
+        line-height: inherit;
+        color: inherit;
+        box-sizing: border-box;
     }
 
     .ql-editor .ql-ui {
         display: none !important;
     }
 
-    .ql-editor p {
-        margin: 0.75em 0;
-        line-height: 1.6;
-    }
-
-    .ql-editor p:last-child {
-        margin-bottom: 0;
-    }
-
+    .ql-editor p,
+    .ql-editor ol,
+    .ql-editor ul,
+    .ql-editor pre,
+    .ql-editor blockquote,
     .ql-editor h1,
     .ql-editor h2,
     .ql-editor h3,
     .ql-editor h4,
     .ql-editor h5,
     .ql-editor h6 {
-        margin: 1.25em 0 0.6em;
-        line-height: 1.3;
+        margin: 0;
+        padding: 0;
+        counter-reset: list-1 list-2 list-3 list-4 list-5 list-6 list-7 list-8 list-9;
     }
 
-    /* Blank lines created in Quill (extra Enter) — keep visible on the frontend */
+    /* Blank lines from extra Enter in Quill — visible like CMS */
     .ql-editor p:empty,
     .ql-editor p:has(> br:only-child) {
-        margin-top: 0;
-        margin-bottom: 1.4em;
-        min-height: 1.4em;
-        line-height: 1.6;
+        min-height: 1em;
+        line-height: inherit;
         height: auto;
         overflow: visible;
     }
@@ -52,7 +51,7 @@
         margin-bottom: 2.5rem;
     }
 
-    /* Inner CMS pages + blog detail: no Quill container box */
+    /* No Quill chrome box on the live site */
     .cms-page-content .ql-snow,
     .main .ql-snow,
     .cms-section-body .ql-snow,
@@ -63,33 +62,12 @@
         margin: 0 !important;
     }
 
-    .cms-page-content .cms-section + .cms-section {
-        margin-top: 0.5rem;
-    }
-
-    .cms-page-content .ql-editor h1,
-    .cms-page-content .ql-editor h2,
-    .cms-page-content .ql-editor h3,
-    .cms-page-content .ql-editor h4 {
-        margin: 1.25em 0 0.6em;
-        line-height: 1.3;
-    }
-
-    .cms-page-content .ql-editor > :first-child {
-        margin-top: 0;
-    }
-
-    .cms-page-content .ql-snow + .ql-snow {
-        margin-top: 0.25rem !important;
-    }
-
+    /* Do not squeeze CMS sections — stack as authored */
+    .cms-page-content .cms-section + .cms-section,
+    .cms-page-content .ql-snow + .ql-snow,
     .cms-page-content .cms-section-after-columns,
     .cms-page-content .cms-section-after-media {
-        margin-top: 0.25rem !important;
-    }
-
-    .cms-page-content .cms-column.mb-4 {
-        margin-bottom: 0.5rem;
+        margin-top: 0;
     }
 
     .cms-hero-inner,
@@ -97,28 +75,7 @@
     .cms-rich-text {
         word-wrap: break-word;
         overflow-wrap: break-word;
-        line-height: 1.45;
-    }
-
-    .cms-hero-inner p,
-    .cms-section-body p,
-    .cms-rich-text p {
-        margin: 0.75em 0;
-        line-height: 1.6;
-    }
-
-    .cms-hero-inner p:last-child,
-    .cms-section-body p:last-child,
-    .cms-rich-text p:last-child {
-        margin-bottom: 0;
-    }
-
-    .cms-page-content .ql-editor p {
-        margin: 0.75em 0;
-    }
-
-    .cms-page-content .ql-editor p:last-child {
-        margin-bottom: 0;
+        white-space: normal;
     }
 
     .main h1,
@@ -129,6 +86,8 @@
     .main h6 {
         white-space: normal;
     }
+
+    /* CMS inline style="" on elements is never stripped in cmsPrepareCmsHtml — wins over rules below. */
 
     /* CMS editor tables: inner cell borders only (no outer wrapper box) */
     .cms-table-host {
@@ -147,16 +106,23 @@
         border: none;
     }
 
-    .cms-page-content table th,
-    .cms-page-content table td,
-    .main .ql-editor th,
-    .main .ql-editor td,
-    .cms-section-body th,
-    .cms-section-body td,
-    .cms-rich-text th,
-    .cms-rich-text td {
+    .cms-page-content table th:not([style]),
+    .cms-page-content table td:not([style]),
+    .main .ql-editor th:not([style]),
+    .main .ql-editor td:not([style]),
+    .cms-section-body th:not([style]),
+    .cms-section-body td:not([style]),
+    .cms-rich-text th:not([style]),
+    .cms-rich-text td:not([style]) {
         border: 1px solid #cbd5e1;
         padding: 0.625rem 0.75rem;
+        vertical-align: top;
+    }
+
+    .cms-page-content table[style] th,
+    .cms-page-content table[style] td,
+    .main .ql-editor table[style] th,
+    .main .ql-editor table[style] td {
         vertical-align: top;
     }
 
@@ -203,62 +169,93 @@
         }
     }
 
-    /* CMS editor lists only — Quill bullet/ordered lists or explicit list-style */
-    .cms-page-content .ql-editor ul:has(> li[data-list="bullet"]),
-    .cms-page-content .ql-editor ul[style*="list-style"],
-    .cms-section-body ul:has(> li[data-list="bullet"]),
-    .cms-section-body ul[style*="list-style"],
-    .cms-rich-text ul:has(> li[data-list="bullet"]),
-    .cms-rich-text ul[style*="list-style"],
-    .cms-hero-inner ul:has(> li[data-list="bullet"]),
-    .cms-hero-inner ul[style*="list-style"],
-    .prose .ql-editor ul:has(> li[data-list="bullet"]),
-    .prose .ql-editor ul[style*="list-style"] {
-        list-style: disc outside !important;
-        list-style-type: disc !important;
-        margin: 0 0 1em !important;
-        padding-left: 1.5em !important;
+    /*
+     * CMS lists: respect editor list-style (decimal, upper/lower-alpha, roman, etc.).
+     * Do NOT force decimal on ol[style*="list-style-type"] — that broke A,B,C lists in CMS.
+     */
+    .ql-editor ol,
+    .ql-editor ul,
+    .main .ql-editor ol,
+    .main .ql-editor ul,
+    .cms-section-body ol,
+    .cms-section-body ul,
+    .cms-rich-text ol,
+    .cms-rich-text ul,
+    .cms-hero-inner ol,
+    .cms-hero-inner ul,
+    .cms-page-content .ql-editor ol,
+    .cms-page-content .ql-editor ul {
+        list-style-position: outside;
+        margin: 0 0 1em;
+        padding-left: 1.5em;
     }
 
-    .cms-page-content .ql-editor ol:has(> li[data-list="ordered"]),
-    .cms-page-content .ql-editor ol[style*="list-style"],
-    .cms-section-body ol:has(> li[data-list="ordered"]),
+  /* Quill default numeric / bullet lists (no custom list-style from CMS) */
+    .ql-editor ol:has(> li[data-list="ordered"]):not([style*="list-style"]):not([type]),
+    .main .ql-editor ol:has(> li[data-list="ordered"]):not([style*="list-style"]):not([type]),
+    .cms-page-content .ql-editor ol:has(> li[data-list="ordered"]):not([style*="list-style"]):not([type]) {
+        list-style: decimal outside;
+        list-style-type: decimal;
+    }
+
+    .ql-editor ul:has(> li[data-list="bullet"]):not([style*="list-style"]),
+    .main .ql-editor ul:has(> li[data-list="bullet"]):not([style*="list-style"]),
+    .cms-page-content .ql-editor ul:has(> li[data-list="bullet"]):not([style*="list-style"]) {
+        list-style: disc outside;
+        list-style-type: disc;
+    }
+
+    /* Plain ol/ul without CMS inline list-style — safe defaults */
+    .ql-editor ol:not([style*="list-style"]):not([type]):not(:has(> li[data-list])),
+    .main .ql-editor ol:not([style*="list-style"]):not([type]):not(:has(> li[data-list])),
+    .cms-section-body ol:not([style*="list-style"]):not([type]),
+    .cms-rich-text ol:not([style*="list-style"]):not([type]),
+    .cms-hero-inner ol:not([style*="list-style"]):not([type]) {
+        list-style: decimal outside;
+        list-style-type: decimal;
+    }
+
+    .ql-editor ul:not([style*="list-style"]):not(:has(> li[data-list])),
+    .main .ql-editor ul:not([style*="list-style"]):not(:has(> li[data-list])),
+    .cms-section-body ul:not([style*="list-style"]),
+    .cms-rich-text ul:not([style*="list-style"]),
+    .cms-hero-inner ul:not([style*="list-style"]) {
+        list-style: disc outside;
+        list-style-type: disc;
+    }
+
+    /* CMS TinyMCE/Quill: upper-alpha, lower-alpha, roman — inline style on <ol> wins */
+    .ql-editor ol[style*="list-style"],
+    .ql-editor ol[type],
+    .main .ql-editor ol[style*="list-style"],
+    .main .ql-editor ol[type],
     .cms-section-body ol[style*="list-style"],
-    .cms-rich-text ol:has(> li[data-list="ordered"]),
+    .cms-section-body ol[type],
     .cms-rich-text ol[style*="list-style"],
-    .cms-hero-inner ol:has(> li[data-list="ordered"]),
-    .cms-hero-inner ol[style*="list-style"],
-    .prose .ql-editor ol:has(> li[data-list="ordered"]),
-    .prose .ql-editor ol[style*="list-style"] {
-        list-style: decimal outside !important;
-        list-style-type: decimal !important;
-        margin: 0 0 1em !important;
-        padding-left: 1.5em !important;
+    .cms-rich-text ol[type] {
+        list-style-position: outside;
     }
 
-    .cms-page-content .ql-editor ul:has(> li[data-list="bullet"]) > li,
-    .cms-page-content .ql-editor ul[style*="list-style"] > li,
-    .cms-page-content .ql-editor ol:has(> li[data-list="ordered"]) > li,
-    .cms-page-content .ql-editor ol[style*="list-style"] > li,
-    .cms-section-body ul:has(> li[data-list="bullet"]) > li,
-    .cms-section-body ul[style*="list-style"] > li,
-    .cms-section-body ol:has(> li[data-list="ordered"]) > li,
-    .cms-section-body ol[style*="list-style"] > li,
-    .cms-rich-text ul:has(> li[data-list="bullet"]) > li,
-    .cms-rich-text ul[style*="list-style"] > li,
-    .cms-rich-text ol:has(> li[data-list="ordered"]) > li,
-    .cms-rich-text ol[style*="list-style"] > li,
-    .cms-hero-inner ul:has(> li[data-list="bullet"]) > li,
-    .cms-hero-inner ul[style*="list-style"] > li,
-    .cms-hero-inner ol:has(> li[data-list="ordered"]) > li,
-    .cms-hero-inner ol[style*="list-style"] > li,
-    .prose .ql-editor ul:has(> li[data-list="bullet"]) > li,
-    .prose .ql-editor ul[style*="list-style"] > li,
-    .prose .ql-editor ol:has(> li[data-list="ordered"]) > li,
-    .prose .ql-editor ol[style*="list-style"] > li {
+    .ql-editor ul[style*="list-style"],
+    .main .ql-editor ul[style*="list-style"],
+    .cms-section-body ul[style*="list-style"],
+    .cms-rich-text ul[style*="list-style"] {
+        list-style-position: outside;
+    }
+
+    .ql-editor ol > li,
+    .ql-editor ul > li,
+    .main .ql-editor ol > li,
+    .main .ql-editor ul > li,
+    .cms-section-body ol > li,
+    .cms-section-body ul > li,
+    .cms-rich-text ol > li,
+    .cms-rich-text ul > li,
+    .cms-hero-inner ol > li,
+    .cms-hero-inner ul > li {
+        display: list-item !important;
         list-style: inherit;
         list-style-type: inherit;
-        display: list-item;
     }
 
     .cms-page-content .ql-editor li[data-list]::before,
@@ -270,64 +267,31 @@
         display: none !important;
     }
 
+    .ql-editor ol > li::marker,
+    .ql-editor ul > li::marker,
+    .main .ql-editor ol > li::marker,
+    .main .ql-editor ul > li::marker {
+        content: normal !important;
+    }
+
+    /* Quill list on wrong parent tag */
+    ol:has(> li[data-list="bullet"]):not([style*="list-style"]) {
+        list-style: disc outside;
+        list-style-type: disc;
+        margin: 0 0 1em;
+        padding-left: 1.5em;
+    }
+
+    ul:has(> li[data-list="ordered"]):not([style*="list-style"]) {
+        list-style: decimal outside;
+        list-style-type: decimal;
+        margin: 0 0 1em;
+        padding-left: 1.5em;
+    }
+
     .cms-facilities-page .cms-facilities-row--white h3.cms-facilities-card-title,
     .cms-facilities-page .cms-facilities-row--white .cms-facilities-card-title {
         color: #053B7A !important;
-    }
-
-    /* Quill list fallback for the opposite parent element */
-    ol:has(> li[data-list="bullet"]) {
-        list-style: disc outside !important;
-        list-style-type: disc !important;
-        margin: 0 0 1em !important;
-        padding-left: 1.5em !important;
-    }
-
-    ul:has(> li[data-list="ordered"]) {
-        list-style: decimal outside !important;
-        list-style-type: decimal !important;
-        margin: 0 0 1em !important;
-        padding-left: 1.5em !important;
-    }
-
-    /* Fallback: show bullets/numbers for any Quill list even without data-list */
-    .ql-editor ol,
-    .main .ql-editor ol,
-    .cms-section-body ol,
-    .cms-rich-text ol,
-    .cms-hero-inner ol {
-        list-style: decimal outside !important;
-        list-style-type: decimal !important;
-        margin: 0 0 1em !important;
-        padding-left: 1.5em !important;
-    }
-
-    .ql-editor ul,
-    .main .ql-editor ul,
-    .cms-section-body ul,
-    .cms-rich-text ul,
-    .cms-hero-inner ul {
-        list-style: disc outside !important;
-        list-style-type: disc !important;
-        margin: 0 0 1em !important;
-        padding-left: 1.5em !important;
-    }
-
-    /* Override styles.css that hides markers on Quill list items */
-    .ql-editor ol > li,
-    .main .ql-editor ol > li,
-    .ql-editor ul > li,
-    .main .ql-editor ul > li {
-        list-style: inherit !important;
-        list-style-type: inherit !important;
-        display: list-item !important;
-    }
-
-    .ql-editor ol > li::marker,
-    .main .ql-editor ol > li::marker,
-    .ql-editor ul > li::marker,
-    .main .ql-editor ul > li::marker {
-        content: normal !important;
     }
 
     .bg-blue-main .ql-editor,
@@ -340,13 +304,13 @@
         color: inherit;
     }
 
-    /* Tailwind on wrappers flattens heading scale; restore TinyMCE / browser defaults. */
-    .ql-editor h1 { font-size: 2em; font-weight: 700; }
-    .ql-editor h2 { font-size: 1.5em; font-weight: 700; }
-    .ql-editor h3 { font-size: 1.17em; font-weight: 700; }
-    .ql-editor h4 { font-size: 1em; font-weight: 700; }
-    .ql-editor h5 { font-size: 0.83em; font-weight: 700; }
-    .ql-editor h6 { font-size: 0.67em; font-weight: 700; }
+    /* Headings without CMS inline size — browser defaults (Tailwind reset undo) */
+    .ql-editor h1:not([style]) { font-size: 2em; font-weight: 700; }
+    .ql-editor h2:not([style]) { font-size: 1.5em; font-weight: 700; }
+    .ql-editor h3:not([style]) { font-size: 1.17em; font-weight: 700; }
+    .ql-editor h4:not([style]) { font-size: 1em; font-weight: 700; }
+    .ql-editor h5:not([style]) { font-size: 0.83em; font-weight: 700; }
+    .ql-editor h6:not([style]) { font-size: 0.67em; font-weight: 700; }
 
     /* Unstyled links inside CMS content should look like links (editor default). */
     .ql-editor a:not([style*="color"]),
