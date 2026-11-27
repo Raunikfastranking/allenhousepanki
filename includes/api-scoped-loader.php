@@ -331,6 +331,26 @@ if (!function_exists('cmsScopedFileCacheGet')) {
     }
 }
 
+if (!function_exists('cmsScopedFileCacheFetchedAt')) {
+    function cmsScopedFileCacheFetchedAt(string $key): int
+    {
+        if (function_exists('cmsApiUsesFileCache') && !cmsApiUsesFileCache()) {
+            return 0;
+        }
+
+        $cacheFile = cmsApiScopedCachePath();
+        if (!is_file($cacheFile)) {
+            return 0;
+        }
+        $decoded = json_decode((string) file_get_contents($cacheFile), true);
+        if (!is_array($decoded)) {
+            return 0;
+        }
+
+        return (int) ($decoded['times'][$key] ?? 0);
+    }
+}
+
 if (!function_exists('cmsScopedFileCacheGetAny')) {
     /** Read scoped cache entry ignoring TTL (fallback when live API fails). */
     function cmsScopedFileCacheGetAny(string $key): ?array
@@ -350,6 +370,27 @@ if (!function_exists('cmsScopedFileCacheGetAny')) {
         $value = $decoded['keys'][$key] ?? null;
 
         return cmsApiResponseIsUsable(is_array($value) ? $value : null) ? $value : null;
+    }
+}
+
+if (!function_exists('cmsScopedFileCacheGetWithinMaxAge')) {
+    /**
+     * Stale file-cache entry only if younger than cmsApiMaxContentStaleSeconds() (~2 minutes by default).
+     */
+    function cmsScopedFileCacheGetWithinMaxAge(string $key): ?array
+    {
+        $value = cmsScopedFileCacheGetAny($key);
+        if ($value === null) {
+            return null;
+        }
+
+        $fetchedAt = cmsScopedFileCacheFetchedAt($key);
+        $maxAge = function_exists('cmsApiMaxContentStaleSeconds') ? cmsApiMaxContentStaleSeconds() : 120;
+        if ($fetchedAt <= 0 || (time() - $fetchedAt) > $maxAge) {
+            return null;
+        }
+
+        return $value;
     }
 }
 
@@ -390,9 +431,50 @@ if (!function_exists('cmsApiStoreScopedKey')) {
     }
 }
 
+if (!function_exists('cmsApiRefreshQueuePath')) {
+    function cmsApiRefreshQueuePath(): string
+    {
+        return dirname(__DIR__) . '/cache/api-refresh-queue.json';
+    }
+}
+
+if (!function_exists('cmsApiSpawnCacheRefresh')) {
+    /**
+     * Run CMS refresh outside the web request so visitors are not blocked on API latency.
+     */
+    function cmsApiSpawnCacheRefresh(): void
+    {
+        $script = dirname(__DIR__) . '/scripts/refresh-cms-cache.php';
+        $php = PHP_BINARY;
+        if (!is_file($script) || $php === '' || !is_file($php)) {
+            return;
+        }
+
+        $stamp = dirname(__DIR__) . '/cache/api-refresh-stamp';
+        $minInterval = max(5, (int) floor(cmsApiContentCacheTtl() / 4));
+        if (is_file($stamp) && (time() - (int) filemtime($stamp)) < $minInterval) {
+            return;
+        }
+        @touch($stamp);
+
+        if (stripos(PHP_OS, 'WIN') === 0) {
+            $cmdExe = getenv('ComSpec');
+            if (!is_string($cmdExe) || !is_file($cmdExe)) {
+                $cmdExe = 'C:\\Windows\\System32\\cmd.exe';
+            }
+            $cmd = escapeshellarg($cmdExe) . ' /C start /B "" ' . escapeshellarg($php) . ' ' . escapeshellarg($script);
+            @pclose(@popen($cmd, 'r'));
+
+            return;
+        }
+
+        @exec(escapeshellarg($php) . ' ' . escapeshellarg($script) . ' > /dev/null 2>&1 &');
+    }
+}
+
 if (!function_exists('cmsApiRefreshScopedKeysAsync')) {
     /**
-     * Refresh expired cache keys after the HTTP response is sent (stale-while-revalidate).
+     * Queue expired CMS keys and refresh them in a separate PHP process.
      *
      * @param array<string, string> $endpoints
      */
@@ -402,41 +484,24 @@ if (!function_exists('cmsApiRefreshScopedKeysAsync')) {
             return;
         }
 
-        register_shutdown_function(static function () use ($endpoints): void {
-            if (!function_exists('cmsApiCurlMultiFetch') || !function_exists('cmsApiScopedCachePath')) {
-                return;
+        $queueFile = cmsApiRefreshQueuePath();
+        $queued = [];
+        if (is_file($queueFile)) {
+            $decoded = json_decode((string) file_get_contents($queueFile), true);
+            if (is_array($decoded)) {
+                $queued = $decoded;
             }
+        }
+        foreach ($endpoints as $key => $endpoint) {
+            $queued[$key] = $endpoint;
+        }
 
-            $fresh = cmsApiCurlMultiFetch($endpoints);
-            $cacheFile = cmsApiScopedCachePath();
-            $stored = ['keys' => [], 'times' => []];
-            if (is_file($cacheFile)) {
-                $decoded = json_decode((string) file_get_contents($cacheFile), true);
-                if (
-                    is_array($decoded)
-                    && function_exists('cmsApiScopedCacheHasLiveData')
-                    && cmsApiScopedCacheHasLiveData($decoded)
-                ) {
-                    $stored['keys'] = is_array($decoded['keys'] ?? null) ? $decoded['keys'] : [];
-                    $stored['times'] = is_array($decoded['times'] ?? null) ? $decoded['times'] : [];
-                }
-            }
-
-            $now = time();
-            foreach ($fresh as $key => $value) {
-                if (!cmsApiResponseIsUsable($value)) {
-                    continue;
-                }
-                $stored['keys'][$key] = $value;
-                $stored['times'][$key] = $now;
-            }
-
-            $cacheDir = dirname($cacheFile);
-            if (!is_dir($cacheDir)) {
-                @mkdir($cacheDir, 0755, true);
-            }
-            @file_put_contents($cacheFile, json_encode($stored));
-        });
+        $cacheDir = dirname($queueFile);
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0755, true);
+        }
+        @file_put_contents($queueFile, json_encode($queued), LOCK_EX);
+        cmsApiSpawnCacheRefresh();
     }
 }
 

@@ -77,7 +77,11 @@ if (!function_exists('cmsFetchPankiPage')) {
             return ['data' => []];
         }
 
-        $page = cmsFetchPageBySlug($slug, false);
+        $forceLive = function_exists('cmsPankiPageRequestIsLive') && cmsPankiPageRequestIsLive($slug);
+        if (!$forceLive && function_exists('cmsSeoShouldForceLiveFetch')) {
+            $forceLive = cmsSeoShouldForceLiveFetch($slug);
+        }
+        $page = cmsFetchPageBySlug($slug, $forceLive);
         if (function_exists('cmsPankiNormalizePageTitles')) {
             $page = cmsPankiNormalizePageTitles($page, $slug);
         }
