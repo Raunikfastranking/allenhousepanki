@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/environment.php';
 require_once dirname(__DIR__) . '/proxy/config.php';
-$GLOBALS['school_assets_css_version'] = '0.51';
+$GLOBALS['school_assets_css_version'] = '0.56';
 require dirname(__DIR__) . '/shared/includes/school-head-assets.php';
 $apsCssBase = $GLOBALS['apsCssBase'] ?? site_asset_url('');
 ?>

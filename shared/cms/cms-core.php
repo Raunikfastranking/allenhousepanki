@@ -572,39 +572,70 @@ if (!function_exists('cmsCoreConfig')) {
             return ['data' => []];
         }
 
-        unset($forceLive);
+        if (
+            !$forceLive
+            && function_exists('cmsSeoShouldForceLiveFetch')
+            && cmsSeoShouldForceLiveFetch($slug)
+        ) {
+            $forceLive = true;
+        }
 
         static $cache = [];
-        if (isset($cache[$slug]) && is_array($cache[$slug])) {
-            return $cache[$slug];
+        $cacheKey = $forceLive ? ($slug . ':live') : $slug;
+        if (isset($cache[$cacheKey]) && is_array($cache[$cacheKey])) {
+            return $cache[$cacheKey];
+        }
+
+        $homeSlug = (string) cmsCoreGet('home_page_slug', 'home-page-agra');
+        if (
+            !$forceLive
+            && $slug === $homeSlug
+            && isset($GLOBALS['api_cache']['home_data'])
+            && is_array($GLOBALS['api_cache']['home_data'])
+        ) {
+            $bulkHome = $GLOBALS['api_cache']['home_data'];
+            if (!empty($bulkHome['data']) && !cmsPageNeedsLiveRefresh($slug, $bulkHome)) {
+                $cache[$cacheKey] = $bulkHome;
+
+                return $bulkHome;
+            }
         }
 
         $fileKey = 'page_' . $slug;
-        $homeSlug = (string) cmsCoreGet('home_page_slug', 'home-page-agra');
+        if (!$forceLive && function_exists('cmsScopedFileCacheGet')) {
+            $fileCached = cmsScopedFileCacheGet($fileKey);
+            if (
+                is_array($fileCached)
+                && !empty($fileCached['data'])
+                && cmsPageIsPublished($fileCached)
+                && !cmsPageNeedsLiveRefresh($slug, $fileCached)
+            ) {
+                $cache[$cacheKey] = $fileCached;
 
-        $fresh = null;
-        if (function_exists('cmsScopedFileCacheGet')) {
-            $fileFresh = cmsScopedFileCacheGet($fileKey);
-            if (is_array($fileFresh) && !empty($fileFresh['data']) && cmsPageIsPublished($fileFresh)) {
-                $fresh = $fileFresh;
+                return $fileCached;
             }
         }
-        if ($fresh === null && $slug === $homeSlug && function_exists('cmsScopedFileCacheGet')) {
-            $homeFresh = cmsScopedFileCacheGet('home_data');
-            if (is_array($homeFresh) && !empty($homeFresh['data']) && cmsPageIsPublished($homeFresh)) {
-                $fresh = $homeFresh;
+
+        $endpoint = 'pages/' . rawurlencode($slug);
+        if ($forceLive && function_exists('cms_curl_get_json')) {
+            $page = cms_curl_get_json(cmsApiBase() . '/' . $endpoint, 20, true);
+        } else {
+            $page = cmsCmsGetJson($endpoint, 8);
+        }
+        if (!is_array($page) || empty($page['data']['sections'] ?? null)) {
+            if ($forceLive && function_exists('cms_curl_get_json')) {
+                $retry = cms_curl_get_json(cmsApiBase() . '/' . $endpoint, 25, true);
+                if (is_array($retry) && !empty($retry['data'])) {
+                    $page = $retry;
+                }
+            } elseif (function_exists('cms_fetch_json_endpoint')) {
+                $retry = cms_fetch_json_endpoint('pages/' . $slug);
+                if (is_array($retry) && !empty($retry['data'])) {
+                    $page = $retry;
+                }
             }
         }
-        if (is_array($fresh)) {
-            if ($slug === $homeSlug && isset($GLOBALS['api_cache']) && is_array($GLOBALS['api_cache'])) {
-                $GLOBALS['api_cache']['home_data'] = $fresh;
-            }
-            $cache[$slug] = $fresh;
 
-            return $fresh;
-        }
-
-        $page = cmsCmsGetJson('pages/' . rawurlencode($slug), 4);
         if (is_array($page) && !empty($page['data']) && cmsPageIsPublished($page)) {
             if (function_exists('cmsApiStoreScopedKey')) {
                 cmsApiStoreScopedKey($fileKey, $page);
@@ -615,14 +646,20 @@ if (!function_exists('cmsCoreConfig')) {
             if ($slug === $homeSlug && isset($GLOBALS['api_cache']) && is_array($GLOBALS['api_cache'])) {
                 $GLOBALS['api_cache']['home_data'] = $page;
             }
-            $cache[$slug] = $page;
+            $cache[$cacheKey] = $page;
+            if ($forceLive) {
+                $cache[$slug] = $page;
+            }
 
             return $page;
         }
 
         $stale = null;
-        if (function_exists('cmsScopedFileCacheGetAny')) {
-            $cached = cmsScopedFileCacheGetAny($fileKey);
+        $staleFn = function_exists('cmsScopedFileCacheGetWithinMaxAge')
+            ? 'cmsScopedFileCacheGetWithinMaxAge'
+            : (function_exists('cmsScopedFileCacheGetAny') ? 'cmsScopedFileCacheGetAny' : null);
+        if ($staleFn !== null) {
+            $cached = $staleFn($fileKey);
             if (is_array($cached) && !empty($cached['data']) && cmsPageIsPublished($cached)) {
                 $stale = $cached;
             }
@@ -640,7 +677,11 @@ if (!function_exists('cmsCoreConfig')) {
         if (!is_array($stale)) {
             $stale = ['data' => []];
         }
-        $cache[$slug] = $stale;
+
+        $cache[$cacheKey] = $stale;
+        if ($forceLive && !empty($stale['data'])) {
+            $cache[$slug] = $stale;
+        }
 
         return $stale;
     }

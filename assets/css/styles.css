@@ -239,29 +239,27 @@ body.allen-main-fixed {
   font-family: "Poppins", sans-serif;
 }
 
-/* CMS font override — always Poppins, ignore CMS editor font selections */
-:is(.cms-page-content, .cms-home-sections, .cms-section, .cms-section-body, .cms-rich-text, .cms-hero-inner, .ql-editor),
-:is(.cms-page-content, .cms-home-sections, .cms-section, .cms-section-body, .cms-rich-text, .cms-hero-inner, .ql-editor) :not(.fa):not(.fas):not(.far):not(.fab):not([class*="fa-"]),
-[class*="ql-font-"] {
-  font-family: "Poppins", sans-serif !important;
+/* CMS rich text: site default font on the container; TinyMCE inline font-family is preserved. */
+:is(.cms-page-content, .cms-home-sections, .cms-section, .cms-section-body, .cms-rich-text, .cms-hero-inner, .ql-editor) {
+  font-family: "Poppins", sans-serif;
 }
 
-/* Default: no list markers site-wide (nav, carousels, layout). CMS content overrides below. */
-ul:not([style*="list-style"]),
-ol:not([style*="list-style"]) {
+/* Default: no list markers site-wide (nav, carousels, layout). Skip CMS rich-text lists. */
+ul:not([style*="list-style"]):not(:is(.ql-editor ul, .cms-page-content ul, .cms-section-body ul, .cms-rich-text ul, .cms-hero-inner ul, .cms-home-sections ul)),
+ol:not([style*="list-style"]):not(:is(.ql-editor ol, .cms-page-content ol, .cms-section-body ol, .cms-rich-text ol, .cms-hero-inner ol, .cms-home-sections ol)) {
   list-style: none !important;
   list-style-type: none !important;
   padding-left: 0;
 }
 
-ul:not([style*="list-style"]) > li,
-ol:not([style*="list-style"]) > li {
+ul:not([style*="list-style"]):not(:is(.ql-editor ul, .cms-page-content ul, .cms-section-body ul, .cms-rich-text ul, .cms-hero-inner ul, .cms-home-sections ul)) > li,
+ol:not([style*="list-style"]):not(:is(.ql-editor ol, .cms-page-content ol, .cms-section-body ol, .cms-rich-text ol, .cms-hero-inner ol, .cms-home-sections ol)) > li {
   list-style: none !important;
   list-style-type: none !important;
 }
 
-ul:not([style*="list-style"]) > li::marker,
-ol:not([style*="list-style"]) > li::marker {
+ul:not([style*="list-style"]):not(:is(.ql-editor ul, .cms-page-content ul, .cms-section-body ul, .cms-rich-text ul, .cms-hero-inner ul, .cms-home-sections ul)) > li::marker,
+ol:not([style*="list-style"]):not(:is(.ql-editor ol, .cms-page-content ol, .cms-section-body ol, .cms-rich-text ol, .cms-hero-inner ol, .cms-home-sections ol)) > li::marker {
   content: none !important;
 }
 
@@ -1397,7 +1395,7 @@ nav .links li {
   .cms-about-page .cms-about-beyond-copy .ql-editor,
   .cms-about-page .cms-about-story-copy .ql-editor *,
   .cms-about-page .cms-about-beyond-copy .ql-editor * {
-    color: #4b5563 !important;
+    color: #4b5563;
   }
 
   .cms-about-page .cms-about-story-copy .about-carousel-desc p,
@@ -1695,3 +1693,4 @@ nav .links li {
 }
 
 /* About Us page — Ghaziabad layout */
+}
